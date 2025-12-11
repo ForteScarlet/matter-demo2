@@ -208,7 +208,7 @@ export const useGameStore = defineStore('game', {
       this.addLog('system', '游戏开始', '欢迎来到Coder\'s Paradise！')
     },
     
-    // 游戏主循环 (每秒调用)
+    // 游戏主循环 (每帧调用，deltaTime是秒数)
     gameTick(deltaTime: number) {
       if (this.isPaused) return
       
@@ -485,10 +485,10 @@ export const useGameStore = defineStore('game', {
           return sum + getEmployeeEfficiency(emp, this)
         }, 0) / assignedEmps.length
         
-        // 阶段进度增加
-        const progressPerHour = avgEfficiency * 0.01 * this.gameSpeed
-        const hoursElapsed = deltaTime / 3600
-        project.stageProgress += progressPerHour * hoursElapsed
+        // 阶段进度增加：deltaTime是秒数，直接用效率计算
+        // 基础速度：效率1.0时，大约需要8小时完成一个阶段
+        const progressPerSecond = (avgEfficiency / (8 * 3600)) * this.gameSpeed
+        project.stageProgress += progressPerSecond * deltaTime
         
         // 阶段完成
         if (project.stageProgress >= 1) {
@@ -720,7 +720,8 @@ export const useGameStore = defineStore('game', {
     // 更新员工疲劳度
     updateEmployeeFatigue(deltaTime: number) {
       const schedule = this.workScheduleConfig
-      const hoursElapsed = deltaTime / 3600
+      // deltaTime是秒数，转换为小时
+      const hoursElapsed = (deltaTime * this.gameSpeed) / 3600
       
       this.employees.forEach(emp => {
         if (emp.currentProjectId) {
@@ -731,7 +732,8 @@ export const useGameStore = defineStore('game', {
     
     // 恢复员工疲劳度
     recoverEmployeeFatigue(deltaTime: number) {
-      const hoursElapsed = deltaTime / 3600
+      // deltaTime是秒数，转换为小时
+      const hoursElapsed = (deltaTime * this.gameSpeed) / 3600
       const recoveryRate = 10 // 每小时恢复10点
       
       this.employees.forEach(emp => {
