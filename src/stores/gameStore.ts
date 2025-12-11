@@ -324,7 +324,7 @@ export const useGameStore = defineStore('game', {
         salary: candidate.salary,
         traits: candidate.traits,
         hireDate: this.currentDay,
-        isWorking: candidate.jobType === 'developer' || candidate.jobType === 'sales' // 开发和售前默认工作中
+        isWorking: true // 所有新雇佣的员工默认投入工作
       }
       
       this.employees.push(employee)
@@ -469,7 +469,7 @@ export const useGameStore = defineStore('game', {
     
     // 处理项目进度
     processProjects(deltaTime: number) {
-      const activeProjects = this.projects.filter(p => p.stage !== 'completed')
+      const activeProjects = this.projects.filter(p => p.stage !== 'completed' && p.stage !== 'delivery')
       
       // 自动分配员工
       this.autoAssignEmployees()
@@ -479,16 +479,18 @@ export const useGameStore = defineStore('game', {
         if (project.assignedEmployees.length === 0) return
         
         const assignedEmps = this.employees.filter(e => project.assignedEmployees.includes(e.id))
+        if (assignedEmps.length === 0) return
         
         // 计算平均效率
         const avgEfficiency = assignedEmps.reduce((sum, emp) => {
           return sum + getEmployeeEfficiency(emp, this)
         }, 0) / assignedEmps.length
         
-        // 阶段进度增加：deltaTime是秒数，直接用效率计算
-        // 基础速度：效率1.0时，大约需要8小时完成一个阶段
-        const progressPerSecond = (avgEfficiency / (8 * 3600)) * this.gameSpeed
-        project.stageProgress += progressPerSecond * deltaTime
+        // 阶段进度增加：deltaTime是秒数，效率1.0时每小时增加12.5%进度（8小时完成）
+        // 游戏速度影响：1x速度下，1秒真实时间 = 1小时游戏时间
+        const hoursElapsed = deltaTime * this.gameSpeed
+        const progressPerHour = avgEfficiency * 0.125 // 8小时完成 = 12.5%/小时
+        project.stageProgress += progressPerHour * hoursElapsed
         
         // 阶段完成
         if (project.stageProgress >= 1) {
@@ -501,6 +503,7 @@ export const useGameStore = defineStore('game', {
     completeProjectStage(project: Project) {
       project.stageProgress = 0
       const assignedEmps = this.employees.filter(e => project.assignedEmployees.includes(e.id))
+      const projectTypeName = PROJECT_TYPE_CONFIGS[project.type].name
       
       switch (project.stage) {
         case 'design':
@@ -516,6 +519,8 @@ export const useGameStore = defineStore('game', {
             // 给予经验
             giveExperience(designer, 50)
             designer.currentProjectId = undefined
+            
+            this.addLog('project', `${designer.name}完成了项目设计`, `项目：${projectTypeName}`)
           }
           
           project.stage = 'development'
@@ -540,6 +545,8 @@ export const useGameStore = defineStore('game', {
             // 给予经验
             giveExperience(developer, 80)
             developer.currentProjectId = undefined
+            
+            this.addLog('project', `${developer.name}完成了项目开发`, `项目：${projectTypeName}`)
           }
           
           // 检查是否有投入工作的测试工程师
@@ -549,10 +556,12 @@ export const useGameStore = defineStore('game', {
           
           if (hasWorkingTester) {
             project.stage = 'testing'
+            this.addLog('project', `项目进入测试阶段`, `项目：${projectTypeName}`)
           } else {
             // 没有测试工程师，直接交付，设置默认bug率
             project.bugRate = 25
             project.stage = 'delivery'
+            this.addLog('project', `项目跳过测试阶段`, `因为没有可用的测试工程师`)
             this.deliverProject(project)
           }
           project.assignedEmployees = []
@@ -568,6 +577,8 @@ export const useGameStore = defineStore('game', {
             baseBugRate = Math.max(1, baseBugRate * (1 - testerEfficiency * 0.5))
             giveExperience(tester, 60)
             tester.currentProjectId = undefined
+            
+            this.addLog('project', `${tester.name}完成了项目测试`, `项目：${projectTypeName}，Bug率：${baseBugRate.toFixed(1)}%`)
           }
           
           // 考虑开发者质量
@@ -673,6 +684,7 @@ export const useGameStore = defineStore('game', {
             project.aesthetics = 5
             project.stage = 'development'
             project.stageProgress = 0
+            this.addLog('project', `项目跳过设计阶段`, `因为没有可用的产品经理`)
             return
           }
         }
@@ -713,15 +725,32 @@ export const useGameStore = defineStore('game', {
           
           project.assignedEmployees.push(bestEmployee.id)
           bestEmployee.currentProjectId = project.id
+          
+          const projectTypeName = PROJECT_TYPE_CONFIGS[project.type].name
+          this.addLog('project', `${bestEmployee.name}开始处理项目`, `项目：${projectTypeName}，阶段：${this.getStageName(project.stage)}`)
+        } else if (requiredJob === 'developer') {
+          // 如果是开发阶段但没有开发者，记录警告
+          this.addLog('project', `项目等待开发者`, `需要软件开发工程师来推进项目`)
         }
       })
+    },
+    
+    getStageName(stage: ProjectStage): string {
+      const stages: Record<ProjectStage, string> = {
+        'design': '设计',
+        'development': '开发',
+        'testing': '测试',
+        'delivery': '交付',
+        'completed': '完成'
+      }
+      return stages[stage] || '未知'
     },
     
     // 更新员工疲劳度
     updateEmployeeFatigue(deltaTime: number) {
       const schedule = this.workScheduleConfig
-      // deltaTime是秒数，转换为小时
-      const hoursElapsed = (deltaTime * this.gameSpeed) / 3600
+      // deltaTime是秒数，gameSpeed影响游戏时间流逝
+      const hoursElapsed = deltaTime * this.gameSpeed
       
       this.employees.forEach(emp => {
         if (emp.currentProjectId) {
@@ -732,8 +761,8 @@ export const useGameStore = defineStore('game', {
     
     // 恢复员工疲劳度
     recoverEmployeeFatigue(deltaTime: number) {
-      // deltaTime是秒数，转换为小时
-      const hoursElapsed = (deltaTime * this.gameSpeed) / 3600
+      // deltaTime是秒数，gameSpeed影响游戏时间流逝
+      const hoursElapsed = deltaTime * this.gameSpeed
       const recoveryRate = 10 // 每小时恢复10点
       
       this.employees.forEach(emp => {
