@@ -1,6 +1,6 @@
 import type { SaveData, SaveMetadata, GameSettings } from '../types/save'
 import { DEFAULT_SETTINGS } from '../types/save'
-import { openDB, DBSchema, IDBPDatabase } from 'idb'
+import { openDB, type IDBPDatabase } from 'idb'
 
 const DB_NAME = 'PixelSoftwareDB'
 const DB_VERSION = 1
@@ -9,7 +9,7 @@ const SETTINGS_STORE = 'settings'
 const AUTOSAVE_KEY = 'autosave'
 const MAX_SAVES = 5
 
-interface GameDB extends DBSchema {
+interface GameDB {
   saves: {
     key: string
     value: SaveData

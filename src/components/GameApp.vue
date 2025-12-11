@@ -1,5 +1,3 @@
-I see the issue - the component imports don't exist yet. Let me create a simplified version without the missing components first.
-
 <template>
   <div class="game-app">
     <!-- 主菜单 -->
@@ -13,12 +11,17 @@ I see the issue - the component imports don't exist yet. Let me create a simplif
 
     <!-- 游戏界面 -->
     <div v-if="gameState === 'playing'" class="game-view">
-      <!-- MelonJS 游戏画布 -->
-      <canvas ref="gameCanvas" id="game-canvas"></canvas>
+      <!-- 游戏头部信息栏 -->
+      <GameHeader />
       
-      <!-- 游戏 UI 覆盖层 -->
-      <div class="game-ui-overlay">
-        <!-- 右侧面板 -->
+      <!-- 主游戏区域 -->
+      <div class="game-content">
+        <!-- 左侧：项目面板 -->
+        <div class="left-panel">
+          <ProjectPanel />
+        </div>
+        
+        <!-- 右侧面板：员工和日志 -->
         <div class="side-panel">
           <div class="panel-tabs">
             <button 
@@ -87,14 +90,15 @@ I see the issue - the component imports don't exist yet. Let me create a simplif
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useGameStore } from '../stores/gameStore'
 import { saveManager } from '../services/saveManager'
-import { Game } from '../game/game'
 import MainMenu from './MainMenu.vue'
+import GameHeader from './GameHeader.vue'
 import EmployeePanel from './EmployeePanel.vue'
 import EventLog from './EventLog.vue'
 import GameManual from './GameManual.vue'
+import ProjectPanel from './ProjectPanel.vue'
 
 const store = useGameStore()
 
@@ -103,9 +107,6 @@ const showSettings = ref(false)
 const showManual = ref(false)
 const showGameMenu = ref(false)
 const activePanel = ref<'employees' | 'log'>('employees')
-const gameCanvas = ref<HTMLCanvasElement | null>(null)
-
-let melonGame: Game | null = null
 
 const toast = ref({
   show: false,
@@ -160,8 +161,6 @@ async function continueGame() {
     if (gameData) {
       Object.assign(store.$state, gameData)
       gameState.value = 'playing'
-      await nextTick()
-      await initMelonGame()
       startGameLoop()
       startAutoSave()
       showToast('游戏已载入', 'success')
@@ -175,8 +174,6 @@ async function continueGame() {
     if (gameData) {
       Object.assign(store.$state, gameData)
       gameState.value = 'playing'
-      await nextTick()
-      await initMelonGame()
       startGameLoop()
       startAutoSave()
       showToast('游戏已载入', 'success')
@@ -187,8 +184,6 @@ async function continueGame() {
 async function startNewGame() {
   store.initGame()
   gameState.value = 'playing'
-  await nextTick()
-  await initMelonGame()
   startGameLoop()
   startAutoSave()
   showToast('游戏开始！', 'success')
@@ -199,8 +194,6 @@ async function loadGame(slotId: string) {
   if (gameData) {
     Object.assign(store.$state, gameData)
     gameState.value = 'playing'
-    await nextTick()
-    await initMelonGame()
     startGameLoop()
     startAutoSave()
     showToast('游戏已载入', 'success')
@@ -223,19 +216,6 @@ async function handleDailyAutoSave() {
   showToast('💾 每日自动保存', 'info')
 }
 
-async function initMelonGame() {
-  if (!gameCanvas.value) return
-  
-  try {
-    melonGame = Game.getInstance()
-    await melonGame.init(gameCanvas.value)
-    melonGame.start()
-  } catch (error) {
-    console.error('初始化 MelonJS 失败:', error)
-    showToast('游戏初始化失败', 'error')
-  }
-}
-
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown)
   window.addEventListener('daily-autosave', handleDailyAutoSave)
@@ -246,10 +226,6 @@ onUnmounted(() => {
   window.removeEventListener('daily-autosave', handleDailyAutoSave)
   stopGameLoop()
   stopAutoSave()
-  
-  if (melonGame) {
-    melonGame.stop()
-  }
 })
 
 async function handleManualSave() {
@@ -266,11 +242,6 @@ function handleReturnToMenu() {
   if (confirm('确定要返回主菜单吗？未保存的进度将会丢失。')) {
     stopGameLoop()
     stopAutoSave()
-    
-    if (melonGame) {
-      melonGame.stop()
-    }
-    
     gameState.value = 'menu'
     showGameMenu.value = false
   }
@@ -349,39 +320,31 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
   height: 100%;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-#game-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+.game-content {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  overflow: hidden;
 }
 
-.game-ui-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-}
-
-.game-ui-overlay > * {
-  pointer-events: auto;
+.left-panel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .side-panel {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  width: 320px;
-  max-height: calc(100vh - 100px);
-  background: rgba(44, 62, 80, 0.95);
+  width: 350px;
+  background: #2c3e50;
   border: 2px solid #7f8c8d;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .panel-tabs {
@@ -461,9 +424,9 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
 }
 
 .game-menu-buttons {
-  position: absolute;
-  top: 10px;
-  right: 340px;
+  position: fixed;
+  top: 70px;
+  right: 370px;
   display: flex;
   gap: 5px;
   z-index: 1000;
@@ -546,5 +509,18 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
 
 .menu-option-btn.danger:hover {
   background: #c0392b;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
 }
 </style>
