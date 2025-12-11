@@ -1,53 +1,9 @@
 <template>
-  <div class="game-container">
-    <GameHeader />
-    
-    <div class="game-content">
-      <div class="left-panel">
-        <EmployeePanel />
-      </div>
-      
-      <div class="main-panel">
-        <ProjectPanel />
-      </div>
-    </div>
-  </div>
+  <GameApp />
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
-import { useGameStore } from './stores/gameStore'
-import GameHeader from './components/GameHeader.vue'
-import EmployeePanel from './components/EmployeePanel.vue'
-import ProjectPanel from './components/ProjectPanel.vue'
-
-const store = useGameStore()
-
-let gameLoop: number
-
-onMounted(() => {
-  store.initGame()
-  
-  let lastTime = Date.now()
-  
-  const tick = () => {
-    const now = Date.now()
-    const deltaTime = (now - lastTime) / 1000
-    lastTime = now
-    
-    store.gameTick(deltaTime)
-    
-    gameLoop = requestAnimationFrame(tick)
-  }
-  
-  gameLoop = requestAnimationFrame(tick)
-})
-
-onUnmounted(() => {
-  if (gameLoop) {
-    cancelAnimationFrame(gameLoop)
-  }
-})
+import GameApp from './components/GameApp.vue'
 </script>
 
 <style>
@@ -64,27 +20,9 @@ body {
   overflow: hidden;
 }
 
-.game-container {
+#app {
   width: 100vw;
   height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.game-content {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-}
-
-.left-panel {
-  width: 350px;
-  overflow-y: auto;
-}
-
-.main-panel {
-  flex: 1;
-  overflow-y: auto;
 }
 
 ::-webkit-scrollbar {
