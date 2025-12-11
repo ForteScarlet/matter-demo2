@@ -1,79 +1,191 @@
+/* 像素风格游戏主题 */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* 主色调 */
+  --primary-bg: #1a252f;
+  --secondary-bg: #2c3e50;
+  --tertiary-bg: #34495e;
+  
+  /* 强调色 */
+  --accent-blue: #3498db;
+  --accent-green: #2ecc71;
+  --accent-yellow: #f39c12;
+  --accent-red: #e74c3c;
+  
+  /* 文本色 */
+  --text-primary: #ecf0f1;
+  --text-secondary: #95a5a6;
+  --text-muted: #7f8c8d;
+  
+  /* 边框色 */
+  --border-primary: #7f8c8d;
+  --border-secondary: #34495e;
+  
+  /* 字体 */
+  --font-pixel: 'Courier New', 'Consolas', monospace;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-.card {
-  padding: 2em;
+  font-family: var(--font-pixel);
+  background: var(--primary-bg);
+  color: var(--text-primary);
+  overflow: hidden;
+  line-height: 1.5;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* 像素完美的按钮样式 */
+button {
+  font-family: var(--font-pixel);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  image-rendering: pixelated;
+}
+
+button:focus {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* 输入框样式 */
+input, select, textarea {
+  font-family: var(--font-pixel);
+  color: var(--text-primary);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--secondary-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border: 2px solid var(--secondary-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* 选择文本样式 */
+::selection {
+  background: var(--accent-blue);
+  color: var(--text-primary);
+}
+
+/* 像素风格的全局动画 */
+@keyframes pixelFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pixelSlideIn {
+  0% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pixelPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes pixelShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+/* 全局禁用文本抗锯齿以获得像素风格 */
+.pixel-perfect {
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+  font-smooth: never;
+}
+
+/* 工具类 */
+.text-center {
   text-align: center;
 }
 
-@media (prefers-color-scheme: light) {
+.text-success {
+  color: var(--accent-green);
+}
+
+.text-warning {
+  color: var(--accent-yellow);
+}
+
+.text-danger {
+  color: var(--accent-red);
+}
+
+.text-info {
+  color: var(--accent-blue);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+/* 响应式断点 */
+@media (max-width: 1024px) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    font-size: 14px;
   }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+}
+
+@media (max-width: 768px) {
+  :root {
+    font-size: 12px;
   }
 }
