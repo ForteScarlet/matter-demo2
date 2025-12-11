@@ -6,6 +6,8 @@
       @continue="continueGame"
       @new-game="startNewGame"
       @load-game="showLoadGame"
+      @load-save="handleLoadSave"
+      @save-game="handleSaveGame"
       @settings="showSettings = true"
     />
 
@@ -189,16 +191,32 @@ async function startNewGame() {
   showToast('游戏开始！', 'success')
 }
 
-async function loadGame(slotId: string) {
-  const gameData = await saveManager.load(slotId)
-  if (gameData) {
-    Object.assign(store.$state, gameData)
-    gameState.value = 'playing'
-    startGameLoop()
-    startAutoSave()
-    showToast('游戏已载入', 'success')
-  } else {
+async function handleLoadSave(saveId: string) {
+  try {
+    const slotId = saveId === 'autosave' ? 'autosave' : saveId.replace('save_', '')
+    const gameData = await saveManager.load(slotId)
+    if (gameData) {
+      Object.assign(store.$state, gameData)
+      gameState.value = 'playing'
+      startGameLoop()
+      startAutoSave()
+      showToast('游戏已载入', 'success')
+    } else {
+      showToast('载入失败', 'error')
+    }
+  } catch (e) {
+    console.error('Load error:', e)
     showToast('载入失败', 'error')
+  }
+}
+
+async function handleSaveGame(saveName: string) {
+  try {
+    const saveData = await saveManager.save(store.$state, saveName)
+    showToast(`游戏已保存: ${saveData.name}`, 'success')
+  } catch (e) {
+    console.error('Save error:', e)
+    showToast('保存失败', 'error')
   }
 }
 
@@ -253,16 +271,13 @@ function startGameLoop() {
   let lastTime = Date.now()
   
   const tick = () => {
-    if (gameState.value !== 'playing') {
-      gameLoop = requestAnimationFrame(tick)
-      return
-    }
-    
     const now = Date.now()
     const deltaTime = (now - lastTime) / 1000
     lastTime = now
     
-    store.gameTick(deltaTime)
+    if (gameState.value === 'playing') {
+      store.gameTick(deltaTime)
+    }
     
     gameLoop = requestAnimationFrame(tick)
   }
