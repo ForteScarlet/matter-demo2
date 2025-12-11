@@ -1,8 +1,7 @@
 <template>
-  <div class="employee-panel">
+  <div class="employee-panel-compact">
     <div class="panel-header">
-      <h2>👥 团队管理</h2>
-      <div class="employee-count">{{ store.employees.length }} / {{ stageConfig.maxEmployees }}</div>
+      <h3>👥 团队 ({{ store.employees.length }}/{{ stageConfig.maxEmployees }})</h3>
     </div>
     
     <div class="hire-section">
@@ -10,84 +9,67 @@
         v-for="job in availableJobs" 
         :key="job"
         @click="openHireDialog(job)"
-        class="hire-btn"
+        class="hire-btn-compact"
         :disabled="store.employees.length >= stageConfig.maxEmployees"
       >
-        + 雇佣{{ getJobName(job) }}
+        + {{ getJobName(job) }}
       </button>
     </div>
     
-    <div class="employee-list">
+    <div class="employee-list-compact">
       <div 
         v-for="emp in store.employees" 
         :key="emp.id"
-        class="employee-card"
+        class="employee-card-compact"
         :class="{ working: emp.currentProjectId }"
       >
-        <div class="emp-header">
+        <div class="emp-header-compact">
           <div class="emp-name">{{ emp.name }}</div>
-          <div class="emp-job">{{ getJobName(emp.jobType) }}</div>
-          <div class="emp-level">Lv.{{ emp.level }}</div>
+          <div class="emp-meta">
+            <span class="emp-job">{{ getJobName(emp.jobType) }}</span>
+            <span class="emp-level">Lv.{{ emp.level }}</span>
+          </div>
         </div>
         
-        <div class="emp-stats">
-          <div class="stat-bar">
-            <span class="bar-label">满意度</span>
-            <div class="bar-bg">
+        <div class="emp-stats-compact">
+          <div class="stat-bar-mini">
+            <span class="bar-label-mini">满意</span>
+            <div class="bar-bg-mini">
               <div class="bar-fill satisfaction" :style="{ width: emp.satisfaction + '%' }"></div>
             </div>
-            <span class="bar-value">{{ Math.round(emp.satisfaction) }}</span>
+            <span class="bar-value-mini">{{ Math.round(emp.satisfaction) }}</span>
           </div>
           
-          <div class="stat-bar">
-            <span class="bar-label">疲劳度</span>
-            <div class="bar-bg">
+          <div class="stat-bar-mini">
+            <span class="bar-label-mini">疲劳</span>
+            <div class="bar-bg-mini">
               <div class="bar-fill fatigue" :style="{ width: emp.fatigue + '%' }"></div>
             </div>
-            <span class="bar-value">{{ Math.round(emp.fatigue) }}</span>
+            <span class="bar-value-mini">{{ Math.round(emp.fatigue) }}</span>
           </div>
         </div>
         
-        <div class="emp-info">
-          <div class="info-row">
-            <span class="info-label">工资:</span>
-            <span class="info-value">¥{{ Math.round(emp.salary) }}/天</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">效率:</span>
-            <span class="info-value">{{ emp.baseEfficiency.toFixed(2) }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">质量:</span>
-            <span class="info-value">{{ emp.qualityFactor.toFixed(2) }}</span>
-          </div>
+        <div class="emp-info-compact">
+          <span class="info-mini">💰¥{{ Math.round(emp.salary) }}</span>
+          <span class="info-mini">⚡{{ (emp.baseEfficiency * 100).toFixed(0) }}%</span>
+          <span class="info-mini">⭐{{ (emp.qualityFactor * 100).toFixed(0) }}%</span>
         </div>
         
-        <div class="emp-traits" v-if="emp.traits.length > 0">
-          <span 
-            v-for="trait in emp.traits" 
-            :key="trait"
-            class="trait-badge"
-          >
-            {{ getTraitName(trait) }}
-          </span>
-        </div>
-        
-        <div class="emp-actions">
+        <div class="emp-actions-compact">
           <button 
             v-if="emp.jobType === 'product_manager' || emp.jobType === 'tester'"
             @click="store.toggleEmployeeWorkStatus(emp.id)"
-            class="work-status-btn"
+            class="btn-mini"
             :class="{ working: emp.isWorking }"
           >
-            {{ emp.isWorking ? '🟢 投入工作' : '🔴 暂离岗位' }}
+            {{ emp.isWorking ? '🟢' : '🔴' }}
           </button>
           <button 
             @click="fireEmployee(emp.id)"
-            class="fire-btn"
+            class="btn-mini fire"
             :disabled="emp.currentProjectId !== undefined"
           >
-            解雇
+            ❌
           </button>
         </div>
       </div>
@@ -218,126 +200,124 @@ function fireEmployee(id: string) {
 </script>
 
 <style scoped>
-.employee-panel {
-  background: #34495e;
-  border: 3px solid #2c3e50;
-  padding: 15px;
+.employee-panel-compact {
+  padding: 10px;
   height: 100%;
   overflow-y: auto;
 }
 
 .panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #7f8c8d;
 }
 
-.panel-header h2 {
+.panel-header h3 {
   margin: 0;
   color: #ecf0f1;
-  font-size: 18px;
-}
-
-.employee-count {
-  color: #95a5a6;
   font-size: 14px;
 }
 
 .hire-section {
   display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 5px;
+  margin-bottom: 10px;
   flex-wrap: wrap;
 }
 
-.hire-btn {
+.hire-btn-compact {
   background: #27ae60;
   color: #ecf0f1;
-  border: 2px solid #229954;
-  padding: 8px 16px;
+  border: 1px solid #229954;
+  padding: 4px 8px;
   cursor: pointer;
   font-family: 'Courier New', monospace;
-  font-size: 12px;
+  font-size: 10px;
   transition: all 0.2s;
+  flex: 1;
+  min-width: 70px;
 }
 
-.hire-btn:hover:not(:disabled) {
+.hire-btn-compact:hover:not(:disabled) {
   background: #2ecc71;
-  transform: translateY(-2px);
 }
 
-.hire-btn:disabled {
+.hire-btn-compact:disabled {
   background: #7f8c8d;
   border-color: #95a5a6;
   cursor: not-allowed;
   opacity: 0.5;
 }
 
-.employee-list {
+.employee-list-compact {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
-.employee-card {
+.employee-card-compact {
   background: #2c3e50;
-  border: 2px solid #7f8c8d;
-  padding: 12px;
+  border: 1px solid #7f8c8d;
+  padding: 6px;
   transition: all 0.2s;
+  font-size: 10px;
 }
 
-.employee-card.working {
+.employee-card-compact.working {
   border-color: #3498db;
-  box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
 }
 
-.emp-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
+.emp-header-compact {
+  margin-bottom: 4px;
 }
 
 .emp-name {
   color: #ecf0f1;
   font-weight: bold;
-  font-size: 14px;
+  font-size: 11px;
+}
+
+.emp-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2px;
 }
 
 .emp-job {
   color: #3498db;
-  font-size: 12px;
+  font-size: 9px;
 }
 
 .emp-level {
   color: #f39c12;
-  font-size: 12px;
+  font-size: 9px;
   font-weight: bold;
 }
 
-.emp-stats {
+.emp-stats-compact {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 3px;
+  margin-bottom: 4px;
 }
 
-.stat-bar {
+.stat-bar-mini {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
-.bar-label {
-  font-size: 11px;
+.bar-label-mini {
+  font-size: 8px;
   color: #95a5a6;
-  min-width: 50px;
+  min-width: 28px;
 }
 
-.bar-bg {
+.bar-bg-mini {
   flex: 1;
-  height: 12px;
+  height: 8px;
   background: #1a252f;
   border: 1px solid #7f8c8d;
   position: relative;
@@ -357,102 +337,62 @@ function fireEmployee(id: string) {
   background: linear-gradient(90deg, #2ecc71 0%, #f39c12 50%, #e74c3c 100%);
 }
 
-.bar-value {
-  font-size: 11px;
+.bar-value-mini {
+  font-size: 8px;
   color: #ecf0f1;
-  min-width: 30px;
+  min-width: 20px;
   text-align: right;
 }
 
-.emp-info {
+.emp-info-compact {
   display: flex;
-  gap: 15px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 9px;
 }
 
-.info-row {
-  display: flex;
-  gap: 5px;
+.info-mini {
+  color: #bdc3c7;
 }
 
-.info-label {
-  font-size: 11px;
-  color: #95a5a6;
-}
-
-.info-value {
-  font-size: 11px;
-  color: #ecf0f1;
-  font-weight: bold;
-}
-
-.emp-traits {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-
-.trait-badge {
-  background: #7f8c8d;
-  color: #ecf0f1;
-  padding: 2px 8px;
-  font-size: 10px;
-  border: 1px solid #95a5a6;
-}
-
-.emp-actions {
+.emp-actions-compact {
   display: flex;
   justify-content: flex-end;
+  gap: 4px;
 }
 
-.fire-btn {
-  background: #e74c3c;
+.btn-mini {
+  background: #7f8c8d;
   color: #ecf0f1;
-  border: 2px solid #c0392b;
-  padding: 6px 12px;
+  border: 1px solid #95a5a6;
+  padding: 2px 6px;
   cursor: pointer;
   font-family: 'Courier New', monospace;
-  font-size: 11px;
+  font-size: 10px;
   transition: all 0.2s;
 }
 
-.fire-btn:hover:not(:disabled) {
-  background: #c0392b;
+.btn-mini:hover:not(:disabled) {
+  opacity: 0.8;
 }
 
-.fire-btn:disabled {
-  background: #7f8c8d;
-  border-color: #95a5a6;
-  cursor: not-allowed;
+.btn-mini:disabled {
   opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.work-status-btn {
-  background: #7f8c8d;
-  color: #ecf0f1;
-  border: 2px solid #95a5a6;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-family: 'Courier New', monospace;
-  font-size: 11px;
-  transition: all 0.2s;
-  margin-right: 5px;
-}
-
-.work-status-btn.working {
+.btn-mini.working {
   background: #27ae60;
   border-color: #229954;
 }
 
-.work-status-btn:not(.working) {
-  background: #95a5a6;
-  border-color: #7f8c8d;
+.btn-mini.fire {
+  background: #e74c3c;
+  border-color: #c0392b;
 }
 
-.work-status-btn:hover {
-  opacity: 0.8;
-  transform: translateY(-1px);
+.btn-mini.fire:hover:not(:disabled) {
+  background: #c0392b;
 }
 
 /* 模态框样式 */

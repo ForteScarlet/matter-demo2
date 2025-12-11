@@ -13,26 +13,44 @@ I see the issue - the component imports don't exist yet. Let me create a simplif
 
     <!-- 游戏界面 -->
     <div v-if="gameState === 'playing'" class="game-view">
-      <GameHeader />
+      <!-- MelonJS 游戏画布 -->
+      <canvas ref="gameCanvas" id="game-canvas"></canvas>
       
-      <!-- 游戏菜单按钮 -->
-      <div class="game-menu-buttons">
-        <button @click="showManual = true" class="menu-button" title="游戏说明手册">
-          📖 帮助
-        </button>
-        <button @click="showGameMenu = true" class="menu-button" title="游戏菜单">
-          ☰ 菜单
-        </button>
-      </div>
-      
-      <div class="game-content">
-        <div class="left-panel">
-          <EmployeePanel />
+      <!-- 游戏 UI 覆盖层 -->
+      <div class="game-ui-overlay">
+        <!-- 右侧面板 -->
+        <div class="side-panel">
+          <div class="panel-tabs">
+            <button 
+              @click="activePanel = 'employees'" 
+              :class="{ active: activePanel === 'employees' }"
+              class="tab-btn"
+            >
+              👥 团队
+            </button>
+            <button 
+              @click="activePanel = 'log'" 
+              :class="{ active: activePanel === 'log' }"
+              class="tab-btn"
+            >
+              📋 日志
+            </button>
+          </div>
+          
+          <div class="panel-content">
+            <EmployeePanel v-if="activePanel === 'employees'" />
+            <EventLog v-if="activePanel === 'log'" />
+          </div>
         </div>
         
-        <div class="main-panel">
-          <ProjectPanel />
-          <EventLog />
+        <!-- 游戏菜单按钮 -->
+        <div class="game-menu-buttons">
+          <button @click="showManual = true" class="menu-button" title="游戏说明手册">
+            📖
+          </button>
+          <button @click="showGameMenu = true" class="menu-button" title="游戏菜单">
+            ☰
+          </button>
         </div>
       </div>
     </div>
@@ -69,13 +87,12 @@ I see the issue - the component imports don't exist yet. Let me create a simplif
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useGameStore } from '../stores/gameStore'
 import { saveManager } from '../services/saveManager'
+import { Game } from '../game/game'
 import MainMenu from './MainMenu.vue'
-import GameHeader from './GameHeader.vue'
 import EmployeePanel from './EmployeePanel.vue'
-import ProjectPanel from './ProjectPanel.vue'
 import EventLog from './EventLog.vue'
 import GameManual from './GameManual.vue'
 
@@ -85,6 +102,10 @@ const gameState = ref<'menu' | 'playing'>('menu')
 const showSettings = ref(false)
 const showManual = ref(false)
 const showGameMenu = ref(false)
+const activePanel = ref<'employees' | 'log'>('employees')
+const gameCanvas = ref<HTMLCanvasElement | null>(null)
+
+let melonGame: Game | null = null
 
 const toast = ref({
   show: false,
@@ -139,6 +160,8 @@ async function continueGame() {
     if (gameData) {
       Object.assign(store.$state, gameData)
       gameState.value = 'playing'
+      await nextTick()
+      await initMelonGame()
       startGameLoop()
       startAutoSave()
       showToast('游戏已载入', 'success')
@@ -152,6 +175,8 @@ async function continueGame() {
     if (gameData) {
       Object.assign(store.$state, gameData)
       gameState.value = 'playing'
+      await nextTick()
+      await initMelonGame()
       startGameLoop()
       startAutoSave()
       showToast('游戏已载入', 'success')
@@ -159,9 +184,11 @@ async function continueGame() {
   }
 }
 
-function startNewGame() {
+async function startNewGame() {
   store.initGame()
   gameState.value = 'playing'
+  await nextTick()
+  await initMelonGame()
   startGameLoop()
   startAutoSave()
   showToast('游戏开始！', 'success')
@@ -172,6 +199,8 @@ async function loadGame(slotId: string) {
   if (gameData) {
     Object.assign(store.$state, gameData)
     gameState.value = 'playing'
+    await nextTick()
+    await initMelonGame()
     startGameLoop()
     startAutoSave()
     showToast('游戏已载入', 'success')
@@ -194,6 +223,19 @@ async function handleDailyAutoSave() {
   showToast('💾 每日自动保存', 'info')
 }
 
+async function initMelonGame() {
+  if (!gameCanvas.value) return
+  
+  try {
+    melonGame = Game.getInstance()
+    await melonGame.init(gameCanvas.value)
+    melonGame.start()
+  } catch (error) {
+    console.error('初始化 MelonJS 失败:', error)
+    showToast('游戏初始化失败', 'error')
+  }
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown)
   window.addEventListener('daily-autosave', handleDailyAutoSave)
@@ -204,6 +246,10 @@ onUnmounted(() => {
   window.removeEventListener('daily-autosave', handleDailyAutoSave)
   stopGameLoop()
   stopAutoSave()
+  
+  if (melonGame) {
+    melonGame.stop()
+  }
 })
 
 async function handleManualSave() {
@@ -220,6 +266,11 @@ function handleReturnToMenu() {
   if (confirm('确定要返回主菜单吗？未保存的进度将会丢失。')) {
     stopGameLoop()
     stopAutoSave()
+    
+    if (melonGame) {
+      melonGame.stop()
+    }
+    
     gameState.value = 'menu'
     showGameMenu.value = false
   }
@@ -296,24 +347,81 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
 .game-view {
   width: 100%;
   height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.game-ui-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.game-ui-overlay > * {
+  pointer-events: auto;
+}
+
+.side-panel {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 320px;
+  max-height: calc(100vh - 100px);
+  background: rgba(44, 62, 80, 0.95);
+  border: 2px solid #7f8c8d;
   display: flex;
   flex-direction: column;
 }
 
-.game-content {
-  flex: 1;
+.panel-tabs {
   display: flex;
-  overflow: hidden;
+  background: #34495e;
+  border-bottom: 2px solid #7f8c8d;
 }
 
-.left-panel {
-  width: 350px;
-  overflow-y: auto;
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #95a5a6;
+  padding: 10px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  transition: all 0.2s;
+  border-right: 1px solid #7f8c8d;
 }
 
-.main-panel {
+.tab-btn:last-child {
+  border-right: none;
+}
+
+.tab-btn:hover {
+  background: #415a77;
+  color: #ecf0f1;
+}
+
+.tab-btn.active {
+  background: #2c3e50;
+  color: #3498db;
+  border-bottom: 2px solid #3498db;
+}
+
+.panel-content {
   flex: 1;
   overflow-y: auto;
+  max-height: calc(100vh - 150px);
 }
 
 .toast-notification {
@@ -353,28 +461,33 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
 }
 
 .game-menu-buttons {
-  position: fixed;
-  top: 80px;
-  right: 20px;
+  position: absolute;
+  top: 10px;
+  right: 340px;
   display: flex;
-  gap: 10px;
+  gap: 5px;
   z-index: 1000;
 }
 
 .menu-button {
-  background: #3498db;
+  background: rgba(52, 152, 219, 0.9);
   color: #ecf0f1;
   border: 2px solid #2980b9;
-  padding: 10px 20px;
+  padding: 8px 12px;
   cursor: pointer;
   font-family: 'Courier New', monospace;
-  font-size: 14px;
+  font-size: 16px;
   transition: all 0.2s;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .menu-button:hover {
-  background: #2980b9;
-  transform: translateY(-2px);
+  background: rgba(41, 128, 185, 0.95);
+  transform: scale(1.1);
 }
 
 .game-menu-modal {
