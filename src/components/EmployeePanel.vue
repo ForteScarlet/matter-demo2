@@ -90,7 +90,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useGameStore } from '../stores/gameStore'
-import { JobType, TRAITS, JOB_CONFIGS, type TraitType } from '../types/game'
+import { TRAITS, JOB_CONFIGS, type JobType, type TraitType } from '../types/game'
 
 const store = useGameStore()
 

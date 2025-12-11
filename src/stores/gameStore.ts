@@ -31,10 +31,10 @@ export const useGameStore = defineStore('game', {
     totalExpense: 0,
     
     companyName: '我的软件公司',
-    companyStage: CompanyStage.GARAGE,
+    companyStage: 'garage',
     reputation: 0,
     techDebt: 0,
-    workSchedule: WorkSchedule.NORMAL_955,
+    workSchedule: 'normal_955',
     
     employees: [],
     projects: [],
@@ -65,7 +65,7 @@ export const useGameStore = defineStore('game', {
     },
     
     activeProjects: (state) => {
-      return state.projects.filter(p => p.stage !== ProjectStage.COMPLETED)
+      return state.projects.filter(p => p.stage !== 'completed')
     },
     
     dailyWageCost: (state) => {
@@ -124,12 +124,12 @@ export const useGameStore = defineStore('game', {
       if (state.totalRevenue < req.totalRevenue) return false
       if (state.reputation < req.reputation) return false
       
-      if (state.companyStage === CompanyStage.SMALL_STUDIO) {
+      if (state.companyStage === 'small_studio') {
         const pmCount = state.employees.filter(e => e.jobType === 'product_manager').length
         if (pmCount < 2) return false
       }
       
-      if (state.companyStage === CompanyStage.REGULAR_COMPANY) {
+      if (state.companyStage === 'regular_company') {
         if (state.techDebt >= 40) return false
       }
       
@@ -260,7 +260,7 @@ export const useGameStore = defineStore('game', {
     
     // 随机生成专精
     randomSpecialties(): Specialty[] {
-      const all = Object.values(Specialty)
+      const all: Specialty[] = ['web_frontend', 'mobile', 'backend', 'ai_bigdata', 'game']
       const count = 1 + Math.floor(Math.random() * 3) // 1-3个
       const selected: Specialty[] = []
       
@@ -280,7 +280,7 @@ export const useGameStore = defineStore('game', {
       const traitCount = Math.random() < 0.3 ? (Math.random() < 0.5 ? 1 : 2) : 0
       
       if (traitCount > 0) {
-        const allTraits = Object.values(TraitType)
+        const allTraits: TraitType[] = ['perfectionist', 'fast_coder', 'mentor', 'bug_magnet', 'detail_oriented', 'pressure_driven', 'stable']
         for (let i = 0; i < traitCount; i++) {
           const trait = allTraits[Math.floor(Math.random() * allTraits.length)]
           if (!traits.includes(trait)) {
@@ -315,7 +315,7 @@ export const useGameStore = defineStore('game', {
       // 选择项目类型
       const rand = Math.random()
       let cumulativeProb = 0
-      let selectedType: ProjectType = ProjectType.WEB_APP
+      let selectedType: ProjectType = 'web_app'
       
       for (const [type, config] of Object.entries(PROJECT_TYPE_CONFIGS)) {
         cumulativeProb += config.probability
@@ -334,7 +334,7 @@ export const useGameStore = defineStore('game', {
         deadline: Math.round(typeConfig.deadlineBase * (0.7 + Math.random() * 0.6)),
         complexity: 3 + Math.floor(Math.random() * 7),
         clarityLevel: 5 + Math.floor(Math.random() * 5),
-        stage: ProjectStage.DESIGN,
+        stage: 'design',
         stageProgress: 0,
         stageStartTime: this.currentDay + this.currentTime / 24,
         techDebt: 0,
@@ -349,7 +349,7 @@ export const useGameStore = defineStore('game', {
     
     // 处理项目进度
     processProjects(deltaTime: number) {
-      const activeProjects = this.projects.filter(p => p.stage !== ProjectStage.COMPLETED)
+      const activeProjects = this.projects.filter(p => p.stage !== 'completed')
       
       // 自动分配员工
       this.autoAssignEmployees()
@@ -383,7 +383,7 @@ export const useGameStore = defineStore('game', {
       const assignedEmps = this.employees.filter(e => project.assignedEmployees.includes(e.id))
       
       switch (project.stage) {
-        case ProjectStage.DESIGN:
+        case 'design':
           // 设计阶段完成
           const designer = assignedEmps[0]
           if (designer) {
@@ -397,11 +397,11 @@ export const useGameStore = defineStore('game', {
             giveExperience(designer, 50)
           }
           
-          project.stage = ProjectStage.DEVELOPMENT
+          project.stage = 'development'
           project.assignedEmployees = []
           break
           
-        case ProjectStage.DEVELOPMENT:
+        case 'development':
           // 开发阶段完成
           const developer = assignedEmps[0]
           if (developer) {
@@ -420,11 +420,11 @@ export const useGameStore = defineStore('game', {
             giveExperience(developer, 80)
           }
           
-          project.stage = ProjectStage.TESTING
+          project.stage = 'testing'
           project.assignedEmployees = []
           break
           
-        case ProjectStage.TESTING:
+        case 'testing':
           // 测试阶段完成
           const tester = assignedEmps[0]
           let baseBugRate = 20
@@ -439,7 +439,7 @@ export const useGameStore = defineStore('game', {
           const devQuality = assignedEmps.find(e => e.jobType === 'developer')?.qualityFactor || 1
           project.bugRate = Math.max(1, baseBugRate * (1 - devQuality * 0.5))
           
-          project.stage = ProjectStage.DELIVERY
+          project.stage = 'delivery'
           project.assignedEmployees = []
           this.deliverProject(project)
           break
@@ -498,7 +498,7 @@ export const useGameStore = defineStore('game', {
       // 全局技术债
       this.techDebt += project.techDebt
       
-      project.stage = ProjectStage.COMPLETED
+      project.stage = 'completed'
       this.completedProjects++
       
       // 从项目池移除
@@ -512,8 +512,8 @@ export const useGameStore = defineStore('game', {
     autoAssignEmployees() {
       const availableEmployees = this.employees.filter(e => !e.currentProjectId)
       const projectsNeedingWorkers = this.projects.filter(p => 
-        p.stage !== ProjectStage.COMPLETED && 
-        p.stage !== ProjectStage.DELIVERY &&
+        p.stage !== 'completed' && 
+        p.stage !== 'delivery' &&
         p.assignedEmployees.length === 0
       )
       
@@ -521,13 +521,13 @@ export const useGameStore = defineStore('game', {
         let requiredJob: JobType | null = null
         
         switch (project.stage) {
-          case ProjectStage.DESIGN:
+          case 'design':
             requiredJob = 'product_manager'
             break
-          case ProjectStage.DEVELOPMENT:
+          case 'development':
             requiredJob = 'developer'
             break
-          case ProjectStage.TESTING:
+          case 'testing':
             requiredJob = 'tester'
             break
         }
@@ -629,11 +629,11 @@ export const useGameStore = defineStore('game', {
     
     // 升级公司阶段
     upgradeCompanyStage() {
-      const stages = [
-        CompanyStage.GARAGE,
-        CompanyStage.SMALL_STUDIO,
-        CompanyStage.REGULAR_COMPANY,
-        CompanyStage.INDUSTRY_LEADER
+      const stages: CompanyStage[] = [
+        'garage',
+        'small_studio',
+        'regular_company',
+        'industry_leader'
       ]
       
       const currentIndex = stages.indexOf(this.companyStage)

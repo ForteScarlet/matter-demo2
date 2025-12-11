@@ -1,36 +1,16 @@
 // 游戏核心类型定义
 
 // 职业类型
-export enum JobType {
-  DEVELOPER = 'developer',
-  PRODUCT_MANAGER = 'product_manager',
-  TESTER = 'tester',
-  SALES = 'sales'
-}
+export type JobType = 'developer' | 'product_manager' | 'tester' | 'sales'
 
 // 专精领域
-export enum Specialty {
-  WEB_FRONTEND = 'web_frontend',
-  MOBILE = 'mobile',
-  BACKEND = 'backend',
-  AI_BIGDATA = 'ai_bigdata',
-  GAME = 'game'
-}
+export type Specialty = 'web_frontend' | 'mobile' | 'backend' | 'ai_bigdata' | 'game'
 
 // 特质类型
-export enum TraitType {
-  PERFECTIONIST = 'perfectionist',
-  FAST_CODER = 'fast_coder',
-  MENTOR = 'mentor',
-  BUG_MAGNET = 'bug_magnet',
-  DETAIL_ORIENTED = 'detail_oriented',
-  PRESSURE_DRIVEN = 'pressure_driven',
-  STABLE = 'stable'
-}
+export type TraitType = 'perfectionist' | 'fast_coder' | 'mentor' | 'bug_magnet' | 'detail_oriented' | 'pressure_driven' | 'stable'
 
 // 特质定义
 export interface Trait {
-  type: TraitType
   name: string
   description: string
   efficiencyBonus: number
@@ -59,21 +39,10 @@ export interface Employee {
 }
 
 // 项目类型
-export enum ProjectType {
-  WEB_APP = 'web_app',
-  MOBILE_APP = 'mobile_app',
-  ENTERPRISE_SYSTEM = 'enterprise_system',
-  AI_INNOVATION = 'ai_innovation'
-}
+export type ProjectType = 'web_app' | 'mobile_app' | 'enterprise_system' | 'ai_innovation'
 
 // 项目阶段
-export enum ProjectStage {
-  DESIGN = 'design',
-  DEVELOPMENT = 'development',
-  TESTING = 'testing',
-  DELIVERY = 'delivery',
-  COMPLETED = 'completed'
-}
+export type ProjectStage = 'design' | 'development' | 'testing' | 'delivery' | 'completed'
 
 // 项目状态
 export interface Project {
@@ -109,11 +78,7 @@ export interface Project {
 }
 
 // 工作制度
-export enum WorkSchedule {
-  NORMAL_955 = 'normal_955',
-  OT_996 = 'ot_996',
-  FLEXIBLE = 'flexible'
-}
+export type WorkSchedule = 'normal_955' | 'ot_996' | 'flexible'
 
 // 工作制度配置
 export interface WorkScheduleConfig {
@@ -128,12 +93,7 @@ export interface WorkScheduleConfig {
 }
 
 // 公司阶段
-export enum CompanyStage {
-  GARAGE = 'garage',
-  SMALL_STUDIO = 'small_studio',
-  REGULAR_COMPANY = 'regular_company',
-  INDUSTRY_LEADER = 'industry_leader'
-}
+export type CompanyStage = 'garage' | 'small_studio' | 'regular_company' | 'industry_leader'
 
 // 公司阶段配置
 export interface CompanyStageConfig {
@@ -152,11 +112,7 @@ export interface CompanyStageConfig {
 }
 
 // 事件类型
-export enum EventType {
-  OPPORTUNITY = 'opportunity',
-  CRISIS = 'crisis',
-  MARKET = 'market'
-}
+export type EventType = 'opportunity' | 'crisis' | 'market'
 
 // 事件选项
 export interface EventOption {
@@ -215,53 +171,46 @@ export interface GameState {
 
 // 常量配置
 export const TRAITS: Record<TraitType, Trait> = {
-  [TraitType.PERFECTIONIST]: {
-    type: TraitType.PERFECTIONIST,
+  'perfectionist': {
     name: '完美主义',
     description: '质量+30%，效率-20%',
     efficiencyBonus: -0.2,
     qualityBonus: 0.3
   },
-  [TraitType.FAST_CODER]: {
-    type: TraitType.FAST_CODER,
+  'fast_coder': {
     name: '快手',
     description: '效率+25%，技术债+40%',
     efficiencyBonus: 0.25,
     qualityBonus: 0,
     techDebtMultiplier: 1.4
   },
-  [TraitType.MENTOR]: {
-    type: TraitType.MENTOR,
+  'mentor': {
     name: '导师型',
     description: '团队经验+20%，自身效率-10%',
     efficiencyBonus: -0.1,
     qualityBonus: 0,
     experienceBonus: 0.2
   },
-  [TraitType.BUG_MAGNET]: {
-    type: TraitType.BUG_MAGNET,
+  'bug_magnet': {
     name: 'Bug磁铁',
     description: 'Bug率+30%',
     efficiencyBonus: 0,
     qualityBonus: -0.3
   },
-  [TraitType.DETAIL_ORIENTED]: {
-    type: TraitType.DETAIL_ORIENTED,
+  'detail_oriented': {
     name: '细节控',
     description: '美观度/合理性+25%，设计耗时+20%',
     efficiencyBonus: 0,
     qualityBonus: 0.25,
     timePenalty: 0.2
   },
-  [TraitType.PRESSURE_DRIVEN]: {
-    type: TraitType.PRESSURE_DRIVEN,
+  'pressure_driven': {
     name: '压力驱动',
     description: '临近期限效率+40%，平时-10%',
     efficiencyBonus: -0.1,
     qualityBonus: 0
   },
-  [TraitType.STABLE]: {
-    type: TraitType.STABLE,
+  'stable': {
     name: '稳定输出',
     description: '效率和质量稳定',
     efficiencyBonus: 0,
@@ -270,8 +219,8 @@ export const TRAITS: Record<TraitType, Trait> = {
 }
 
 export const WORK_SCHEDULES: Record<WorkSchedule, WorkScheduleConfig> = {
-  [WorkSchedule.NORMAL_955]: {
-    type: WorkSchedule.NORMAL_955,
+  'normal_955': {
+    type: 'normal_955',
     name: '朝九晚五',
     workHours: 9,
     efficiencyMultiplier: 1.0,
@@ -279,8 +228,8 @@ export const WORK_SCHEDULES: Record<WorkSchedule, WorkScheduleConfig> = {
     satisfactionDelta: 0.2,
     techDebtMultiplier: 1.0
   },
-  [WorkSchedule.OT_996]: {
-    type: WorkSchedule.OT_996,
+  'ot_996': {
+    type: 'ot_996',
     name: '996制度',
     workHours: 12,
     efficiencyMultiplier: 1.25,
@@ -288,8 +237,8 @@ export const WORK_SCHEDULES: Record<WorkSchedule, WorkScheduleConfig> = {
     satisfactionDelta: -0.5,
     techDebtMultiplier: 1.5
   },
-  [WorkSchedule.FLEXIBLE]: {
-    type: WorkSchedule.FLEXIBLE,
+  'flexible': {
+    type: 'flexible',
     name: '弹性工作',
     workHours: 8,
     efficiencyMultiplier: 0.9,
@@ -301,11 +250,11 @@ export const WORK_SCHEDULES: Record<WorkSchedule, WorkScheduleConfig> = {
 }
 
 export const COMPANY_STAGES: Record<CompanyStage, CompanyStageConfig> = {
-  [CompanyStage.GARAGE]: {
-    stage: CompanyStage.GARAGE,
+  'garage': {
+    stage: 'garage',
     name: '车库创业',
     maxEmployees: 3,
-    unlockedJobs: [JobType.DEVELOPER],
+    unlockedJobs: ['developer'],
     projectPoolCapacity: 10,
     baseGenerationRate: 0.3,
     monthlyRent: 1000,
@@ -314,11 +263,11 @@ export const COMPANY_STAGES: Record<CompanyStage, CompanyStageConfig> = {
       reputation: 10
     }
   },
-  [CompanyStage.SMALL_STUDIO]: {
-    stage: CompanyStage.SMALL_STUDIO,
+  'small_studio': {
+    stage: 'small_studio',
     name: '小型工作室',
     maxEmployees: 6,
-    unlockedJobs: [JobType.DEVELOPER, JobType.PRODUCT_MANAGER],
+    unlockedJobs: ['developer', 'product_manager'],
     projectPoolCapacity: 15,
     baseGenerationRate: 0.4,
     monthlyRent: 3000,
@@ -328,11 +277,11 @@ export const COMPANY_STAGES: Record<CompanyStage, CompanyStageConfig> = {
       specificRequirements: '拥有2名产品经理'
     }
   },
-  [CompanyStage.REGULAR_COMPANY]: {
-    stage: CompanyStage.REGULAR_COMPANY,
+  'regular_company': {
+    stage: 'regular_company',
     name: '正规公司',
     maxEmployees: 12,
-    unlockedJobs: [JobType.DEVELOPER, JobType.PRODUCT_MANAGER, JobType.TESTER],
+    unlockedJobs: ['developer', 'product_manager', 'tester'],
     projectPoolCapacity: 25,
     baseGenerationRate: 0.5,
     monthlyRent: 8000,
@@ -342,11 +291,11 @@ export const COMPANY_STAGES: Record<CompanyStage, CompanyStageConfig> = {
       specificRequirements: '技术债<40'
     }
   },
-  [CompanyStage.INDUSTRY_LEADER]: {
-    stage: CompanyStage.INDUSTRY_LEADER,
+  'industry_leader': {
+    stage: 'industry_leader',
     name: '行业标杆',
     maxEmployees: 20,
-    unlockedJobs: [JobType.DEVELOPER, JobType.PRODUCT_MANAGER, JobType.TESTER, JobType.SALES],
+    unlockedJobs: ['developer', 'product_manager', 'tester', 'sales'],
     projectPoolCapacity: 40,
     baseGenerationRate: 0.6,
     monthlyRent: 20000,
@@ -357,29 +306,29 @@ export const COMPANY_STAGES: Record<CompanyStage, CompanyStageConfig> = {
   }
 }
 
-export const JOB_CONFIGS = {
-  [JobType.DEVELOPER]: {
+export const JOB_CONFIGS: Record<JobType, any> = {
+  'developer': {
     name: '软件开发工程师',
     baseSalary: 300,
     growthRate: 1.15,
-    stage: ProjectStage.DEVELOPMENT,
+    stage: 'development',
     maxConcurrent: 1
   },
-  [JobType.PRODUCT_MANAGER]: {
+  'product_manager': {
     name: '产品经理',
     baseSalary: 500,
     growthRate: 1.18,
-    stage: ProjectStage.DESIGN,
+    stage: 'design',
     maxConcurrent: 1
   },
-  [JobType.TESTER]: {
+  'tester': {
     name: '测试工程师',
     baseSalary: 400,
     growthRate: 1.16,
-    stage: ProjectStage.TESTING,
+    stage: 'testing',
     maxConcurrent: 2
   },
-  [JobType.SALES]: {
+  'sales': {
     name: '售前',
     baseSalary: 600,
     growthRate: 1.20,
@@ -388,33 +337,33 @@ export const JOB_CONFIGS = {
   }
 }
 
-export const PROJECT_TYPE_CONFIGS = {
-  [ProjectType.WEB_APP]: {
+export const PROJECT_TYPE_CONFIGS: Record<ProjectType, any> = {
+  'web_app': {
     name: 'Web应用',
     probability: 0.4,
     budgetBase: 10000,
     deadlineBase: 21,
-    specialtyMatch: [Specialty.WEB_FRONTEND, Specialty.BACKEND]
+    specialtyMatch: ['web_frontend', 'backend']
   },
-  [ProjectType.MOBILE_APP]: {
+  'mobile_app': {
     name: '移动应用',
     probability: 0.3,
     budgetBase: 10000,
     deadlineBase: 21,
-    specialtyMatch: [Specialty.MOBILE, Specialty.BACKEND]
+    specialtyMatch: ['mobile', 'backend']
   },
-  [ProjectType.ENTERPRISE_SYSTEM]: {
+  'enterprise_system': {
     name: '企业系统',
     probability: 0.2,
     budgetBase: 10000,
     deadlineBase: 21,
-    specialtyMatch: [Specialty.BACKEND, Specialty.WEB_FRONTEND]
+    specialtyMatch: ['backend', 'web_frontend']
   },
-  [ProjectType.AI_INNOVATION]: {
+  'ai_innovation': {
     name: 'AI/创新项目',
     probability: 0.1,
     budgetBase: 10000,
     deadlineBase: 21,
-    specialtyMatch: [Specialty.AI_BIGDATA, Specialty.BACKEND]
+    specialtyMatch: ['ai_bigdata', 'backend']
   }
 }

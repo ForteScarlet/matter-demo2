@@ -145,26 +145,26 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useGameStore } from '../stores/gameStore'
-import { ProjectStage, PROJECT_TYPE_CONFIGS, type ProjectType } from '../types/game'
+import { PROJECT_TYPE_CONFIGS, type ProjectType } from '../types/game'
 
 const store = useGameStore()
 
 const stageConfig = computed(() => store.currentStageConfig)
 
 const designProjects = computed(() => 
-  store.projects.filter(p => p.stage === ProjectStage.DESIGN)
+  store.projects.filter(p => p.stage === 'design')
 )
 
 const developmentProjects = computed(() => 
-  store.projects.filter(p => p.stage === ProjectStage.DEVELOPMENT)
+  store.projects.filter(p => p.stage === 'development')
 )
 
 const testingProjects = computed(() => 
-  store.projects.filter(p => p.stage === ProjectStage.TESTING)
+  store.projects.filter(p => p.stage === 'testing')
 )
 
 const completedProjects = computed(() => 
-  store.projects.filter(p => p.stage === ProjectStage.COMPLETED).slice(-5)
+  store.projects.filter(p => p.stage === 'completed').slice(-5)
 )
 
 function getProjectTypeName(type: ProjectType): string {
