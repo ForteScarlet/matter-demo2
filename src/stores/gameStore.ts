@@ -323,13 +323,35 @@ export const useGameStore = defineStore('game', {
         fatigue: 0,
         salary: candidate.salary,
         traits: candidate.traits,
-        hireDate: this.currentDay
+        hireDate: this.currentDay,
+        isWorking: candidate.jobType === 'developer' || candidate.jobType === 'sales' // 开发和售前默认工作中
       }
       
       this.employees.push(employee)
       this.addLog('employee', `雇佣了${JOB_CONFIGS[candidate.jobType].name}：${candidate.name}`, 
         `工资：${Math.round(candidate.salary)}/天`)
       return employee
+    },
+    
+    // 切换员工工作状态
+    toggleEmployeeWorkStatus(employeeId: string) {
+      const employee = this.employees.find(e => e.id === employeeId)
+      if (!employee) return
+      
+      // 只有产品经理和测试工程师可以切换
+      if (employee.jobType !== 'product_manager' && employee.jobType !== 'tester') return
+      
+      employee.isWorking = !employee.isWorking
+      
+      // 如果切换为不工作，从所有项目中移除
+      if (!employee.isWorking && employee.currentProjectId) {
+        this.projects.forEach(p => {
+          p.assignedEmployees = p.assignedEmployees.filter(id => id !== employeeId)
+        })
+        employee.currentProjectId = undefined
+      }
+      
+      this.addLog('employee', `${employee.name}${employee.isWorking ? '投入工作' : '暂离岗位'}`)
     },
     
     // 解雇员工
@@ -493,6 +515,7 @@ export const useGameStore = defineStore('game', {
             
             // 给予经验
             giveExperience(designer, 50)
+            designer.currentProjectId = undefined
           }
           
           project.stage = 'development'
@@ -516,9 +539,22 @@ export const useGameStore = defineStore('game', {
             
             // 给予经验
             giveExperience(developer, 80)
+            developer.currentProjectId = undefined
           }
           
-          project.stage = 'testing'
+          // 检查是否有投入工作的测试工程师
+          const hasWorkingTester = this.employees.some(e => 
+            e.jobType === 'tester' && e.isWorking && !e.currentProjectId
+          )
+          
+          if (hasWorkingTester) {
+            project.stage = 'testing'
+          } else {
+            // 没有测试工程师，直接交付，设置默认bug率
+            project.bugRate = 25
+            project.stage = 'delivery'
+            this.deliverProject(project)
+          }
           project.assignedEmployees = []
           break
           
@@ -531,10 +567,11 @@ export const useGameStore = defineStore('game', {
             const testerEfficiency = getEmployeeEfficiency(tester, this)
             baseBugRate = Math.max(1, baseBugRate * (1 - testerEfficiency * 0.5))
             giveExperience(tester, 60)
+            tester.currentProjectId = undefined
           }
           
           // 考虑开发者质量
-          const devQuality = assignedEmps.find(e => e.jobType === 'developer')?.qualityFactor || 1
+          const devQuality = 1.0 // 使用默认值，因为开发者已经完成
           project.bugRate = Math.max(1, baseBugRate * (1 - devQuality * 0.5))
           
           project.stage = 'delivery'
@@ -617,7 +654,6 @@ export const useGameStore = defineStore('game', {
     
     // 自动分配员工到项目
     autoAssignEmployees() {
-      const availableEmployees = this.employees.filter(e => !e.currentProjectId)
       const projectsNeedingWorkers = this.projects.filter(p => 
         p.stage !== 'completed' && 
         p.stage !== 'delivery' &&
@@ -625,6 +661,22 @@ export const useGameStore = defineStore('game', {
       )
       
       projectsNeedingWorkers.forEach(project => {
+        // 跳过设计阶段：如果没有投入工作的产品经理，直接进入开发阶段
+        if (project.stage === 'design') {
+          const hasWorkingPM = this.employees.some(e => 
+            e.jobType === 'product_manager' && e.isWorking && !e.currentProjectId
+          )
+          
+          if (!hasWorkingPM) {
+            // 设置默认值并跳到开发阶段
+            project.rationality = project.clarityLevel * 0.8
+            project.aesthetics = 5
+            project.stage = 'development'
+            project.stageProgress = 0
+            return
+          }
+        }
+        
         let requiredJob: JobType | null = null
         
         switch (project.stage) {
@@ -641,9 +693,11 @@ export const useGameStore = defineStore('game', {
         
         if (!requiredJob) return
         
-        // 找到合适的员工
-        const suitableEmployees = availableEmployees.filter(e => 
-          e.jobType === requiredJob && !e.currentProjectId
+        // 找到合适的员工（必须是投入工作状态）
+        const suitableEmployees = this.employees.filter(e => 
+          e.jobType === requiredJob && 
+          !e.currentProjectId &&
+          e.isWorking
         )
         
         if (suitableEmployees.length > 0) {

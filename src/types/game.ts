@@ -50,6 +50,7 @@ export interface Employee {
   traits: TraitType[]
   currentProjectId?: string
   hireDate: number
+  isWorking: boolean // 是否投入工作（仅对产品经理和测试工程师有效）
 }
 
 // 项目类型
@@ -156,6 +157,7 @@ export interface EmployeeCandidate {
   qualityFactor: number
   salary: number
   traits: TraitType[]
+  isWorking?: boolean // 是否投入工作（默认true）
 }
 
 // 游戏状态

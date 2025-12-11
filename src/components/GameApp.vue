@@ -15,6 +15,11 @@ I see the issue - the component imports don't exist yet. Let me create a simplif
     <div v-if="gameState === 'playing'" class="game-view">
       <GameHeader />
       
+      <!-- 帮助按钮 -->
+      <button @click="showManual = true" class="help-button" title="游戏说明手册">
+        📖 帮助
+      </button>
+      
       <div class="game-content">
         <div class="left-panel">
           <EmployeePanel />
@@ -31,6 +36,9 @@ I see the issue - the component imports don't exist yet. Let me create a simplif
     <div v-if="toast.show" class="toast-notification" :class="toast.type">
       {{ toast.message }}
     </div>
+    
+    <!-- 游戏手册 -->
+    <GameManual v-model:isOpen="showManual" />
   </div>
 </template>
 
@@ -43,11 +51,13 @@ import GameHeader from './GameHeader.vue'
 import EmployeePanel from './EmployeePanel.vue'
 import ProjectPanel from './ProjectPanel.vue'
 import EventLog from './EventLog.vue'
+import GameManual from './GameManual.vue'
 
 const store = useGameStore()
 
 const gameState = ref<'menu' | 'playing'>('menu')
 const showSettings = ref(false)
+const showManual = ref(false)
 
 const toast = ref({
   show: false,
@@ -282,5 +292,25 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
     transform: translateX(0);
     opacity: 1;
   }
+}
+
+.help-button {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  background: #3498db;
+  color: #ecf0f1;
+  border: 2px solid #2980b9;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  z-index: 1000;
+  transition: all 0.2s;
+}
+
+.help-button:hover {
+  background: #2980b9;
+  transform: translateY(-2px);
 }
 </style>

@@ -51,7 +51,7 @@
         <div class="emp-info">
           <div class="info-row">
             <span class="info-label">工资:</span>
-            <span class="info-value">¥{{ emp.salary }}/天</span>
+            <span class="info-value">¥{{ Math.round(emp.salary) }}/天</span>
           </div>
           <div class="info-row">
             <span class="info-label">效率:</span>
@@ -74,6 +74,14 @@
         </div>
         
         <div class="emp-actions">
+          <button 
+            v-if="emp.jobType === 'product_manager' || emp.jobType === 'tester'"
+            @click="store.toggleEmployeeWorkStatus(emp.id)"
+            class="work-status-btn"
+            :class="{ working: emp.isWorking }"
+          >
+            {{ emp.isWorking ? '🟢 投入工作' : '🔴 暂离岗位' }}
+          </button>
           <button 
             @click="fireEmployee(emp.id)"
             class="fire-btn"
@@ -418,6 +426,33 @@ function fireEmployee(id: string) {
   border-color: #95a5a6;
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.work-status-btn {
+  background: #7f8c8d;
+  color: #ecf0f1;
+  border: 2px solid #95a5a6;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  transition: all 0.2s;
+  margin-right: 5px;
+}
+
+.work-status-btn.working {
+  background: #27ae60;
+  border-color: #229954;
+}
+
+.work-status-btn:not(.working) {
+  background: #95a5a6;
+  border-color: #7f8c8d;
+}
+
+.work-status-btn:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
 }
 
 /* 模态框样式 */
