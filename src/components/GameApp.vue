@@ -2,8 +2,17 @@ I see the issue - the component imports don't exist yet. Let me create a simplif
 
 <template>
   <div class="game-app">
+    <!-- 主菜单 -->
+    <MainMenu 
+      v-if="gameState === 'menu'"
+      @continue="continueGame"
+      @new-game="startNewGame"
+      @load-game="showLoadGame"
+      @settings="showSettings = true"
+    />
+
     <!-- 游戏界面 -->
-    <div class="game-view">
+    <div v-if="gameState === 'playing'" class="game-view">
       <GameHeader />
       
       <div class="game-content">
@@ -28,11 +37,15 @@ I see the issue - the component imports don't exist yet. Let me create a simplif
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useGameStore } from '../stores/gameStore'
 import { saveManager } from '../services/saveManager'
+import MainMenu from './MainMenu.vue'
 import GameHeader from './GameHeader.vue'
 import EmployeePanel from './EmployeePanel.vue'
 import ProjectPanel from './ProjectPanel.vue'
 
 const store = useGameStore()
+
+const gameState = ref<'menu' | 'playing'>('menu')
+const showSettings = ref(false)
 
 const toast = ref({
   show: false,
@@ -44,6 +57,8 @@ let gameLoop: number | null = null
 let autoSaveInterval: number | null = null
 
 function handleKeyDown(e: KeyboardEvent) {
+  if (gameState.value !== 'playing') return
+  
   const key = e.key
   
   if (key === ' ') {
@@ -70,12 +85,52 @@ function handleKeyDown(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => {
-  window.addEventListener('keydown', handleKeyDown)
+function continueGame() {
+  const saves = saveManager.getAllSaves()
+  if (saves.length > 0) {
+    loadGame('1')
+  } else {
+    const autoSave = saveManager.getAutoSave()
+    if (autoSave) {
+      const gameData = saveManager.load('autosave')
+      if (gameData) {
+        Object.assign(store.$state, gameData)
+        gameState.value = 'playing'
+        startGameLoop()
+        startAutoSave()
+        showToast('游戏已载入', 'success')
+      }
+    }
+  }
+}
+
+function startNewGame() {
   store.initGame()
+  gameState.value = 'playing'
   startGameLoop()
   startAutoSave()
   showToast('游戏开始！', 'success')
+}
+
+function loadGame(slotId: string) {
+  const gameData = saveManager.load(slotId)
+  if (gameData) {
+    Object.assign(store.$state, gameData)
+    gameState.value = 'playing'
+    startGameLoop()
+    startAutoSave()
+    showToast('游戏已载入', 'success')
+  } else {
+    showToast('载入失败', 'error')
+  }
+}
+
+function showLoadGame() {
+  showToast('载入功能开发中...', 'info')
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown)
 })
 
 onUnmounted(() => {
@@ -94,9 +149,16 @@ function saveGame() {
 }
 
 function startGameLoop() {
+  if (gameLoop !== null) return
+  
   let lastTime = Date.now()
   
   const tick = () => {
+    if (gameState.value !== 'playing') {
+      gameLoop = requestAnimationFrame(tick)
+      return
+    }
+    
     const now = Date.now()
     const deltaTime = (now - lastTime) / 1000
     lastTime = now

@@ -162,8 +162,9 @@ export const useGameStore = defineStore('game', {
     gameTick(deltaTime: number) {
       if (this.isPaused) return
       
-      const hoursPerSecond = (this.gameSpeed * 24) / 86400 // 游戏内小时数
-      this.currentTime += hoursPerSecond * deltaTime
+      // 游戏速度影响时间流逝：1x = 1秒真实时间 = 1小时游戏时间
+      const hoursElapsed = this.gameSpeed * deltaTime
+      this.currentTime += hoursElapsed
       
       // 跨天处理
       if (this.currentTime >= 24) {
