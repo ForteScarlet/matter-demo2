@@ -1,23 +1,29 @@
 <template>
-  <div class="event-log">
+  <div class="event-log" :class="{ collapsed: !isExpanded }">
     <div class="log-header">
       <h3>📋 事件日志</h3>
-      <button @click="toggleExpanded" class="toggle-btn">
-        {{ isExpanded ? '▼' : '▲' }}
-      </button>
+      <div class="header-actions">
+        <span class="log-count">{{ filteredLogs.length }} 条</span>
+        <button @click="toggleExpanded" class="toggle-btn">
+          {{ isExpanded ? '▼' : '▲' }}
+        </button>
+      </div>
     </div>
     
     <div v-if="isExpanded" class="log-content">
       <div class="log-filters">
-        <button 
-          v-for="cat in categories" 
-          :key="cat.value"
-          @click="toggleCategory(cat.value)"
-          class="filter-btn"
-          :class="{ active: selectedCategories.includes(cat.value) }"
-        >
-          {{ cat.icon }} {{ cat.label }}
-        </button>
+        <div class="filter-buttons">
+          <button 
+            v-for="cat in categories" 
+            :key="cat.value"
+            @click="toggleCategory(cat.value)"
+            class="filter-btn"
+            :class="{ active: selectedCategories.includes(cat.value) }"
+            :title="cat.label"
+          >
+            {{ cat.icon }}
+          </button>
+        </div>
         <button 
           @click="clearLog" 
           class="clear-btn"
@@ -109,8 +115,13 @@ function clearLog() {
 <style scoped>
 .event-log {
   background: #2c3e50;
-  border: 3px solid #34495e;
+  border: 2px solid #34495e;
   margin: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.event-log.collapsed {
+  margin-bottom: 10px;
 }
 
 .log-header {
@@ -120,77 +131,109 @@ function clearLog() {
   padding: 10px 15px;
   background: #34495e;
   border-bottom: 2px solid #7f8c8d;
+  cursor: pointer;
+  user-select: none;
+}
+
+.log-header:hover {
+  background: #3e5264;
 }
 
 .log-header h3 {
   margin: 0;
   color: #ecf0f1;
-  font-size: 16px;
+  font-size: 14px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.log-count {
+  font-size: 11px;
+  color: #95a5a6;
+  padding: 2px 8px;
+  background: #2c3e50;
+  border: 1px solid #7f8c8d;
 }
 
 .toggle-btn {
-  background: transparent;
-  border: none;
+  background: #2c3e50;
+  border: 1px solid #7f8c8d;
   color: #ecf0f1;
   cursor: pointer;
-  font-size: 16px;
-  padding: 5px 10px;
+  font-size: 14px;
+  padding: 4px 10px;
+  transition: all 0.2s;
 }
 
 .toggle-btn:hover {
-  background: #2c3e50;
+  background: #3498db;
+  border-color: #2980b9;
 }
 
 .log-content {
-  max-height: 400px;
+  max-height: 350px;
   display: flex;
   flex-direction: column;
 }
 
 .log-filters {
   display: flex;
-  gap: 5px;
-  padding: 10px;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
   background: #34495e;
-  border-bottom: 2px solid #7f8c8d;
-  flex-wrap: wrap;
+  border-bottom: 1px solid #7f8c8d;
   align-items: center;
 }
 
+.filter-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
 .filter-btn {
-  padding: 5px 10px;
+  padding: 6px 10px;
   background: #2c3e50;
-  border: 2px solid #7f8c8d;
+  border: 1px solid #7f8c8d;
   color: #95a5a6;
   cursor: pointer;
   font-family: 'Courier New', monospace;
-  font-size: 11px;
+  font-size: 14px;
   transition: all 0.2s;
+  min-width: 32px;
 }
 
 .filter-btn:hover {
   border-color: #3498db;
+  background: #34495e;
 }
 
 .filter-btn.active {
   background: #3498db;
   border-color: #2980b9;
   color: #ecf0f1;
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
 }
 
 .clear-btn {
-  padding: 5px 10px;
+  padding: 6px 12px;
   background: #e74c3c;
-  border: 2px solid #c0392b;
+  border: 1px solid #c0392b;
   color: #ecf0f1;
   cursor: pointer;
   font-family: 'Courier New', monospace;
-  font-size: 11px;
-  margin-left: auto;
+  font-size: 12px;
+  transition: all 0.2s;
 }
 
 .clear-btn:hover {
   background: #c0392b;
+  transform: translateY(-1px);
 }
 
 .log-list {
@@ -202,11 +245,16 @@ function clearLog() {
 .log-entry {
   display: flex;
   gap: 10px;
-  padding: 8px;
-  margin-bottom: 5px;
+  padding: 8px 10px;
+  margin-bottom: 2px;
   border-left: 3px solid #7f8c8d;
   background: #34495e;
-  font-size: 12px;
+  font-size: 11px;
+  transition: background 0.2s;
+}
+
+.log-entry:hover {
+  background: #3e5264;
 }
 
 .log-entry.money {
@@ -230,10 +278,11 @@ function clearLog() {
 }
 
 .log-time {
-  color: #95a5a6;
+  color: #7f8c8d;
   font-size: 10px;
-  min-width: 55px;
+  min-width: 50px;
   flex-shrink: 0;
+  font-weight: normal;
 }
 
 .log-content-text {
@@ -242,13 +291,15 @@ function clearLog() {
 
 .log-message {
   color: #ecf0f1;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
+  line-height: 1.4;
 }
 
 .log-details {
   color: #95a5a6;
-  font-size: 11px;
-  margin-bottom: 3px;
+  font-size: 10px;
+  margin-bottom: 2px;
+  line-height: 1.3;
 }
 
 .log-changes {

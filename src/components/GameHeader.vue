@@ -1,78 +1,103 @@
 <template>
   <div class="game-header">
-    <div class="header-left">
-      <div class="company-info">
-        <h1 class="company-name">{{ store.companyName }}</h1>
-        <div class="company-stage">{{ stageConfig.name }}</div>
+    <div class="header-content">
+      <div class="header-section company-section">
+        <div class="company-info">
+          <h1 class="company-name">{{ store.companyName }}</h1>
+          <div class="company-stage">{{ stageConfig.name }}</div>
+        </div>
       </div>
-      <div class="stats-group">
-        <div class="stat-item money-stat">
-          <span class="stat-label">💰 资金</span>
-          <span class="stat-value money-value">
-            ¥{{ formatMoney(store.money) }}
-            <div v-for="anim in moneyAnimations" :key="anim.id" class="money-animation" :class="{ positive: anim.amount > 0 }">
-              {{ anim.amount > 0 ? '+' : '' }}{{ Math.round(anim.amount) }}
+      
+      <div class="header-section stats-section">
+        <div class="stats-row">
+          <div class="stat-item money-stat">
+            <span class="stat-icon">💰</span>
+            <div class="stat-content">
+              <span class="stat-label">资金</span>
+              <span class="stat-value money-value">
+                ¥{{ formatMoney(store.money) }}
+                <div v-for="anim in moneyAnimations" :key="anim.id" class="money-animation" :class="{ positive: anim.amount > 0 }">
+                  {{ anim.amount > 0 ? '+' : '' }}{{ Math.round(anim.amount) }}
+                </div>
+              </span>
             </div>
-          </span>
+          </div>
+          
+          <div class="stat-item">
+            <span class="stat-icon">📅</span>
+            <div class="stat-content">
+              <span class="stat-label">第 {{ store.currentDay }} 天</span>
+              <span class="stat-value">{{ formatTime(store.currentTime) }}</span>
+            </div>
+          </div>
+          
+          <div class="stat-item">
+            <span class="stat-icon">⭐</span>
+            <div class="stat-content">
+              <span class="stat-label">声望</span>
+              <span class="stat-value">{{ store.reputation }}</span>
+            </div>
+          </div>
+          
+          <div class="stat-item">
+            <span class="stat-icon">⚠️</span>
+            <div class="stat-content">
+              <span class="stat-label">技术债</span>
+              <span class="stat-value" :class="techDebtClass">{{ Math.round(store.techDebt) }}</span>
+            </div>
+          </div>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">📅 第 {{ store.currentDay }} 天</span>
-          <span class="stat-value">{{ formatTime(store.currentTime) }}</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">⭐ 声望</span>
-          <span class="stat-value">{{ store.reputation }}</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">⚠️ 技术债</span>
-          <span class="stat-value" :class="techDebtClass">{{ Math.round(store.techDebt) }}</span>
-        </div>
-      </div>
-      
-      <!-- 项目生成进度 -->
-      <div class="project-generation">
-        <div class="gen-label">📦 下个项目</div>
-        <div class="gen-progress-bar">
-          <div class="gen-progress-fill" :style="{ width: (store.projectGenerationProgress * 100) + '%' }"></div>
-        </div>
-        <div class="gen-percent">{{ Math.round(store.projectGenerationProgress * 100) }}%</div>
-      </div>
-    </div>
-    
-    <div class="header-right">
-      <div class="control-group">
-        <button @click="store.togglePause()" class="control-btn" :class="{ active: store.isPaused }">
-          {{ store.isPaused ? '▶️ 继续' : '⏸️ 暂停' }}
-        </button>
         
-        <div class="speed-controls">
-          <button 
-            v-for="speed in [0.5, 1, 2, 5]" 
-            :key="speed"
-            @click="store.setGameSpeed(speed)"
-            class="speed-btn"
-            :class="{ active: store.gameSpeed === speed }"
-          >
-            {{ speed }}x
+        <!-- 项目生成进度 -->
+        <div class="project-generation">
+          <span class="gen-icon">📦</span>
+          <div class="gen-content">
+            <span class="gen-label">下个项目</span>
+            <div class="gen-progress-bar">
+              <div class="gen-progress-fill" :style="{ width: (store.projectGenerationProgress * 100) + '%' }"></div>
+            </div>
+          </div>
+          <div class="gen-percent">{{ Math.round(store.projectGenerationProgress * 100) }}%</div>
+        </div>
+      </div>
+      
+      <div class="header-section controls-section">
+        <div class="controls-row">
+          <button @click="store.togglePause()" class="control-btn pause-btn" :class="{ active: store.isPaused }">
+            {{ store.isPaused ? '▶️' : '⏸️' }}
           </button>
+          
+          <div class="speed-controls">
+            <button 
+              v-for="speed in [0.5, 1, 2, 5]" 
+              :key="speed"
+              @click="store.setGameSpeed(speed)"
+              class="speed-btn"
+              :class="{ active: store.gameSpeed === speed }"
+            >
+              {{ speed }}x
+            </button>
+          </div>
         </div>
-      </div>
-      
-      <div class="work-schedule">
-        <label>工作制度：</label>
-        <select v-model="currentSchedule" @change="onScheduleChange" class="schedule-select">
-          <option value="normal_955">朝九晚五</option>
-          <option value="ot_996">996制度</option>
-          <option value="flexible">弹性工作</option>
-        </select>
-      </div>
-      
-      <div class="balance-indicator">
-        <span class="balance-label">平衡指标:</span>
-        <div class="balance-bar">
-          <div class="balance-fill" :style="{ width: balancePercent + '%' }" :class="balanceClass"></div>
+        
+        <div class="controls-row">
+          <div class="work-schedule">
+            <label>工作制度：</label>
+            <select v-model="currentSchedule" @change="onScheduleChange" class="schedule-select">
+              <option value="normal_955">朝九晚五</option>
+              <option value="ot_996">996制度</option>
+              <option value="flexible">弹性工作</option>
+            </select>
+          </div>
+          
+          <div class="balance-indicator">
+            <span class="balance-label">平衡:</span>
+            <div class="balance-bar">
+              <div class="balance-fill" :style="{ width: balancePercent + '%' }" :class="balanceClass"></div>
+            </div>
+            <span class="balance-value">{{ balanceRatio.toFixed(2) }}</span>
+          </div>
         </div>
-        <span class="balance-value">{{ balanceRatio.toFixed(2) }}</span>
       </div>
     </div>
   </div>
@@ -152,59 +177,91 @@ function onScheduleChange() {
 .game-header {
   background: #2c3e50;
   color: #ecf0f1;
-  padding: 15px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  padding: 12px 20px;
   border-bottom: 3px solid #34495e;
   font-family: 'Courier New', monospace;
 }
 
-.header-left {
+.header-content {
   display: flex;
-  gap: 30px;
-  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  max-width: 100%;
 }
 
-.company-info {
+.header-section {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+.company-section {
+  min-width: 200px;
+}
+
+.stats-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.controls-section {
+  min-width: 280px;
 }
 
 .company-name {
-  font-size: 20px;
+  font-size: 18px;
   margin: 0;
   font-weight: bold;
   color: #3498db;
+  line-height: 1.2;
 }
 
 .company-stage {
-  font-size: 12px;
+  font-size: 11px;
   color: #95a5a6;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
-.stats-group {
+.stats-row {
   display: flex;
-  gap: 20px;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
 .stat-item {
   display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #34495e;
+  padding: 6px 12px;
+  border: 1px solid #7f8c8d;
+  min-width: 140px;
+}
+
+.stat-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.stat-content {
+  display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 10px;
   color: #95a5a6;
+  line-height: 1;
 }
 
 .stat-value {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
   color: #ecf0f1;
   position: relative;
+  line-height: 1.2;
 }
 
 .money-stat {
@@ -262,35 +319,30 @@ function onScheduleChange() {
   animation: blink 1s infinite;
 }
 
-.header-right {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-}
-
-.control-group {
+.controls-row {
   display: flex;
   gap: 10px;
   align-items: center;
 }
 
-.control-btn {
+.pause-btn {
   background: #34495e;
   color: #ecf0f1;
   border: 2px solid #7f8c8d;
   padding: 8px 16px;
   cursor: pointer;
   font-family: 'Courier New', monospace;
-  font-size: 14px;
+  font-size: 16px;
   transition: all 0.2s;
+  min-width: 50px;
 }
 
-.control-btn:hover {
+.pause-btn:hover {
   background: #415a77;
   border-color: #95a5a6;
 }
 
-.control-btn.active {
+.pause-btn.active {
   background: #e74c3c;
   border-color: #c0392b;
 }
@@ -324,40 +376,48 @@ function onScheduleChange() {
 .work-schedule {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  background: #34495e;
+  padding: 6px 10px;
+  border: 1px solid #7f8c8d;
 }
 
 .work-schedule label {
-  font-size: 12px;
+  font-size: 11px;
   color: #95a5a6;
+  white-space: nowrap;
 }
 
 .schedule-select {
-  background: #34495e;
+  background: #2c3e50;
   color: #ecf0f1;
-  border: 2px solid #7f8c8d;
-  padding: 6px 10px;
+  border: 1px solid #7f8c8d;
+  padding: 4px 8px;
   font-family: 'Courier New', monospace;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
 }
 
 .balance-indicator {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  background: #34495e;
+  padding: 6px 10px;
+  border: 1px solid #7f8c8d;
 }
 
 .balance-label {
   font-size: 11px;
   color: #95a5a6;
+  white-space: nowrap;
 }
 
 .balance-bar {
-  width: 100px;
-  height: 12px;
-  background: #34495e;
-  border: 2px solid #7f8c8d;
+  width: 80px;
+  height: 10px;
+  background: #2c3e50;
+  border: 1px solid #7f8c8d;
   position: relative;
   overflow: hidden;
 }
@@ -380,29 +440,43 @@ function onScheduleChange() {
 }
 
 .balance-value {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: bold;
-  min-width: 40px;
+  min-width: 35px;
+  color: #ecf0f1;
 }
 
 .project-generation {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   background: #34495e;
-  border: 2px solid #7f8c8d;
+  border: 1px solid #7f8c8d;
+  margin-top: 8px;
+}
+
+.gen-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.gen-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
 }
 
 .gen-label {
-  font-size: 11px;
+  font-size: 10px;
   color: #95a5a6;
-  white-space: nowrap;
+  line-height: 1;
 }
 
 .gen-progress-bar {
-  width: 120px;
-  height: 10px;
+  width: 100%;
+  height: 8px;
   background: #2c3e50;
   border: 1px solid #7f8c8d;
   position: relative;
@@ -417,10 +491,11 @@ function onScheduleChange() {
 }
 
 .gen-percent {
-  font-size: 11px;
+  font-size: 10px;
   color: #ecf0f1;
   font-weight: bold;
-  min-width: 35px;
+  min-width: 32px;
+  text-align: right;
 }
 
 @keyframes blink {

@@ -15,10 +15,15 @@ I see the issue - the component imports don't exist yet. Let me create a simplif
     <div v-if="gameState === 'playing'" class="game-view">
       <GameHeader />
       
-      <!-- 帮助按钮 -->
-      <button @click="showManual = true" class="help-button" title="游戏说明手册">
-        📖 帮助
-      </button>
+      <!-- 游戏菜单按钮 -->
+      <div class="game-menu-buttons">
+        <button @click="showManual = true" class="menu-button" title="游戏说明手册">
+          📖 帮助
+        </button>
+        <button @click="showGameMenu = true" class="menu-button" title="游戏菜单">
+          ☰ 菜单
+        </button>
+      </div>
       
       <div class="game-content">
         <div class="left-panel">
@@ -39,6 +44,27 @@ I see the issue - the component imports don't exist yet. Let me create a simplif
     
     <!-- 游戏手册 -->
     <GameManual v-model:isOpen="showManual" />
+    
+    <!-- 游戏菜单 -->
+    <div v-if="showGameMenu" class="modal-overlay" @click="showGameMenu = false">
+      <div class="game-menu-modal" @click.stop>
+        <h3>游戏菜单</h3>
+        <div class="menu-options">
+          <button @click="handleManualSave" class="menu-option-btn save">
+            💾 手动保存
+          </button>
+          <button @click="showManual = true; showGameMenu = false" class="menu-option-btn">
+            📖 游戏手册
+          </button>
+          <button @click="handleReturnToMenu" class="menu-option-btn danger">
+            🏠 返回主菜单
+          </button>
+          <button @click="showGameMenu = false" class="menu-option-btn">
+            ✕ 取消
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -58,6 +84,7 @@ const store = useGameStore()
 const gameState = ref<'menu' | 'playing'>('menu')
 const showSettings = ref(false)
 const showManual = ref(false)
+const showGameMenu = ref(false)
 
 const toast = ref({
   show: false,
@@ -93,7 +120,15 @@ function handleKeyDown(e: KeyboardEvent) {
   
   if (key === 'F5') {
     e.preventDefault()
-    saveGame()
+    handleManualSave()
+  }
+  
+  if (key === 'Escape') {
+    if (showGameMenu.value) {
+      showGameMenu.value = false
+    } else {
+      showGameMenu.value = true
+    }
   }
 }
 
@@ -158,12 +193,22 @@ onUnmounted(() => {
   stopAutoSave()
 })
 
-function saveGame() {
+function handleManualSave() {
   try {
     const saveData = saveManager.save(store.$state)
     showToast(`游戏已保存: ${saveData.name}`, 'success')
+    showGameMenu.value = false
   } catch (e) {
     showToast('保存失败', 'error')
+  }
+}
+
+function handleReturnToMenu() {
+  if (confirm('确定要返回主菜单吗？未保存的进度将会丢失。')) {
+    stopGameLoop()
+    stopAutoSave()
+    gameState.value = 'menu'
+    showGameMenu.value = false
   }
 }
 
@@ -294,10 +339,16 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
   }
 }
 
-.help-button {
+.game-menu-buttons {
   position: fixed;
   top: 80px;
   right: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 1000;
+}
+
+.menu-button {
   background: #3498db;
   color: #ecf0f1;
   border: 2px solid #2980b9;
@@ -305,12 +356,69 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
   cursor: pointer;
   font-family: 'Courier New', monospace;
   font-size: 14px;
-  z-index: 1000;
   transition: all 0.2s;
 }
 
-.help-button:hover {
+.menu-button:hover {
   background: #2980b9;
   transform: translateY(-2px);
+}
+
+.game-menu-modal {
+  background: #2c3e50;
+  border: 3px solid #34495e;
+  padding: 30px;
+  min-width: 350px;
+}
+
+.game-menu-modal h3 {
+  margin: 0 0 25px 0;
+  color: #ecf0f1;
+  font-size: 20px;
+  text-align: center;
+  border-bottom: 2px solid #34495e;
+  padding-bottom: 15px;
+}
+
+.menu-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.menu-option-btn {
+  background: #34495e;
+  color: #ecf0f1;
+  border: 2px solid #7f8c8d;
+  padding: 15px 20px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.menu-option-btn:hover {
+  background: #415a77;
+  border-color: #95a5a6;
+  transform: translateX(5px);
+}
+
+.menu-option-btn.save {
+  background: #27ae60;
+  border-color: #229954;
+}
+
+.menu-option-btn.save:hover {
+  background: #2ecc71;
+}
+
+.menu-option-btn.danger {
+  background: #e74c3c;
+  border-color: #c0392b;
+}
+
+.menu-option-btn.danger:hover {
+  background: #c0392b;
 }
 </style>
