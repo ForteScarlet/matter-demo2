@@ -132,21 +132,29 @@ function handleKeyDown(e: KeyboardEvent) {
   }
 }
 
-function continueGame() {
-  const saves = saveManager.getAllSaves()
+async function continueGame() {
+  const autoSave = await saveManager.getAutoSave()
+  if (autoSave) {
+    const gameData = await saveManager.load('autosave')
+    if (gameData) {
+      Object.assign(store.$state, gameData)
+      gameState.value = 'playing'
+      startGameLoop()
+      startAutoSave()
+      showToast('游戏已载入', 'success')
+      return
+    }
+  }
+  
+  const saves = await saveManager.getAllSaves()
   if (saves.length > 0) {
-    loadGame('1')
-  } else {
-    const autoSave = saveManager.getAutoSave()
-    if (autoSave) {
-      const gameData = saveManager.load('autosave')
-      if (gameData) {
-        Object.assign(store.$state, gameData)
-        gameState.value = 'playing'
-        startGameLoop()
-        startAutoSave()
-        showToast('游戏已载入', 'success')
-      }
+    const gameData = await saveManager.load('1')
+    if (gameData) {
+      Object.assign(store.$state, gameData)
+      gameState.value = 'playing'
+      startGameLoop()
+      startAutoSave()
+      showToast('游戏已载入', 'success')
     }
   }
 }
@@ -159,8 +167,8 @@ function startNewGame() {
   showToast('游戏开始！', 'success')
 }
 
-function loadGame(slotId: string) {
-  const gameData = saveManager.load(slotId)
+async function loadGame(slotId: string) {
+  const gameData = await saveManager.load(slotId)
   if (gameData) {
     Object.assign(store.$state, gameData)
     gameState.value = 'playing'
@@ -172,12 +180,17 @@ function loadGame(slotId: string) {
   }
 }
 
-function showLoadGame() {
-  showToast('载入功能开发中...', 'info')
+async function showLoadGame() {
+  const saves = await saveManager.getAllSaves()
+  if (saves.length > 0) {
+    await continueGame()
+  } else {
+    showToast('暂无存档', 'info')
+  }
 }
 
-function handleDailyAutoSave() {
-  saveManager.autoSave(store.$state)
+async function handleDailyAutoSave() {
+  await saveManager.autoSave(store.$state)
   showToast('💾 每日自动保存', 'info')
 }
 
@@ -193,9 +206,9 @@ onUnmounted(() => {
   stopAutoSave()
 })
 
-function handleManualSave() {
+async function handleManualSave() {
   try {
-    const saveData = saveManager.save(store.$state)
+    const saveData = await saveManager.save(store.$state)
     showToast(`游戏已保存: ${saveData.name}`, 'success')
     showGameMenu.value = false
   } catch (e) {
@@ -245,8 +258,8 @@ function stopGameLoop() {
 function startAutoSave() {
   const settings = saveManager.getSettings()
   if (settings.autoSave.enabled && settings.autoSave.interval > 0) {
-    autoSaveInterval = window.setInterval(() => {
-      saveManager.autoSave(store.$state)
+    autoSaveInterval = window.setInterval(async () => {
+      await saveManager.autoSave(store.$state)
       showToast('⏰ 定时自动保存', 'info')
     }, settings.autoSave.interval * 60 * 1000)
   }

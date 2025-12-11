@@ -53,13 +53,15 @@ import { saveManager } from '../services/saveManager'
 const emit = defineEmits(['continue', 'new-game', 'load-game', 'settings'])
 
 const recentSaves = ref<any[]>([])
+const autoSave = ref<any>(null)
 
 const hasSaveData = computed(() => {
-  return recentSaves.value.length > 0 || saveManager.getAutoSave() !== null
+  return recentSaves.value.length > 0 || autoSave.value !== null
 })
 
-onMounted(() => {
-  recentSaves.value = saveManager.getAllSaves()
+onMounted(async () => {
+  recentSaves.value = await saveManager.getAllSaves()
+  autoSave.value = await saveManager.getAutoSave()
 })
 </script>
 
