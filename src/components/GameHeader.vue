@@ -6,9 +6,14 @@
         <div class="company-stage">{{ stageConfig.name }}</div>
       </div>
       <div class="stats-group">
-        <div class="stat-item">
+        <div class="stat-item money-stat">
           <span class="stat-label">💰 资金</span>
-          <span class="stat-value">¥{{ formatMoney(store.money) }}</span>
+          <span class="stat-value money-value">
+            ¥{{ formatMoney(store.money) }}
+            <div v-for="anim in moneyAnimations" :key="anim.id" class="money-animation" :class="{ positive: anim.amount > 0 }">
+              {{ anim.amount > 0 ? '+' : '' }}{{ Math.round(anim.amount) }}
+            </div>
+          </span>
         </div>
         <div class="stat-item">
           <span class="stat-label">📅 第 {{ store.currentDay }} 天</span>
@@ -22,6 +27,15 @@
           <span class="stat-label">⚠️ 技术债</span>
           <span class="stat-value" :class="techDebtClass">{{ Math.round(store.techDebt) }}</span>
         </div>
+      </div>
+      
+      <!-- 项目生成进度 -->
+      <div class="project-generation">
+        <div class="gen-label">📦 下个项目</div>
+        <div class="gen-progress-bar">
+          <div class="gen-progress-fill" :style="{ width: (store.projectGenerationProgress * 100) + '%' }"></div>
+        </div>
+        <div class="gen-percent">{{ Math.round(store.projectGenerationProgress * 100) }}%</div>
       </div>
     </div>
     
@@ -65,12 +79,37 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useGameStore } from '../stores/gameStore'
 import type { WorkSchedule } from '../types/game'
 
+interface MoneyAnimation {
+  id: number
+  amount: number
+}
+
 const store = useGameStore()
 const currentSchedule = ref<WorkSchedule>(store.workSchedule)
+const moneyAnimations = ref<MoneyAnimation[]>([])
+
+// 监听金钱变化，触发动画
+watch(() => store.money, (newMoney, oldMoney) => {
+  const change = newMoney - oldMoney
+  if (Math.abs(change) > 0.1) {
+    const anim: MoneyAnimation = {
+      id: Date.now() + Math.random(),
+      amount: change
+    }
+    moneyAnimations.value.push(anim)
+    
+    setTimeout(() => {
+      const index = moneyAnimations.value.findIndex((a: MoneyAnimation) => a.id === anim.id)
+      if (index > -1) {
+        moneyAnimations.value.splice(index, 1)
+      }
+    }, 3000)
+  }
+})
 
 const stageConfig = computed(() => store.currentStageConfig)
 
@@ -165,6 +204,45 @@ function onScheduleChange() {
   font-size: 14px;
   font-weight: bold;
   color: #ecf0f1;
+  position: relative;
+}
+
+.money-stat {
+  position: relative;
+}
+
+.money-value {
+  display: inline-block;
+}
+
+.money-animation {
+  position: absolute;
+  top: -10px;
+  right: -60px;
+  font-size: 14px;
+  font-weight: bold;
+  animation: moneyFloat 3s ease-out forwards;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.money-animation.positive {
+  color: #2ecc71;
+}
+
+.money-animation:not(.positive) {
+  color: #e74c3c;
+}
+
+@keyframes moneyFloat {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
 }
 
 .stat-value.safe {
@@ -305,6 +383,44 @@ function onScheduleChange() {
   font-size: 12px;
   font-weight: bold;
   min-width: 40px;
+}
+
+.project-generation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #34495e;
+  border: 2px solid #7f8c8d;
+}
+
+.gen-label {
+  font-size: 11px;
+  color: #95a5a6;
+  white-space: nowrap;
+}
+
+.gen-progress-bar {
+  width: 120px;
+  height: 10px;
+  background: #2c3e50;
+  border: 1px solid #7f8c8d;
+  position: relative;
+  overflow: hidden;
+}
+
+.gen-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3498db, #2ecc71);
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+}
+
+.gen-percent {
+  font-size: 11px;
+  color: #ecf0f1;
+  font-weight: bold;
+  min-width: 35px;
 }
 
 @keyframes blink {

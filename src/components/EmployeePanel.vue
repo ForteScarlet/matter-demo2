@@ -9,7 +9,7 @@
       <button 
         v-for="job in availableJobs" 
         :key="job"
-        @click="hireEmployee(job)"
+        @click="openHireDialog(job)"
         class="hire-btn"
         :disabled="store.employees.length >= stageConfig.maxEmployees"
       >
@@ -84,17 +84,79 @@
         </div>
       </div>
     </div>
+    
+    <!-- 雇佣对话框 -->
+    <div v-if="showHireDialog" class="modal-overlay" @click="closeHireDialog">
+      <div class="modal-content" @click.stop>
+        <h3>雇佣{{ getJobName(selectedJobType!) }}</h3>
+        
+        <!-- 候选人列表 -->
+        <div class="candidates-list">
+          <h4>选择候选人 (三选一):</h4>
+          <div class="candidate-cards">
+            <div 
+              v-for="candidate in candidates" 
+              :key="candidate.id"
+              class="candidate-card"
+              :class="{ selected: selectedCandidate?.id === candidate.id }"
+              @click="selectedCandidate = candidate"
+            >
+              <div class="candidate-name">{{ candidate.name }}</div>
+              <div class="candidate-stats">
+                <div class="stat-item">
+                  <span class="stat-label">效率:</span>
+                  <span class="stat-value">{{ (candidate.baseEfficiency * 100).toFixed(0) }}%</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">质量:</span>
+                  <span class="stat-value">{{ (candidate.qualityFactor * 100).toFixed(0) }}%</span>
+                </div>
+                <div class="stat-item salary">
+                  <span class="stat-label">工资:</span>
+                  <span class="stat-value">¥{{ Math.round(candidate.salary) }}/天</span>
+                </div>
+              </div>
+              <div class="candidate-specialties">
+                <span class="specialty-tag" v-for="spec in candidate.specialties" :key="spec">
+                  {{ getSpecialtyName(spec) }}
+                </span>
+              </div>
+              <div class="candidate-traits" v-if="candidate.traits.length > 0">
+                <span class="trait-tag" v-for="trait in candidate.traits" :key="trait">
+                  {{ TRAITS[trait].name }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-actions">
+          <button 
+            @click="confirmHire" 
+            class="btn-primary"
+            :disabled="!selectedCandidate"
+          >
+            确认雇佣
+          </button>
+          <button @click="closeHireDialog" class="btn-secondary">取消</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useGameStore } from '../stores/gameStore'
-import { TRAITS, JOB_CONFIGS, type JobType, type TraitType } from '../types/game'
+import { TRAITS, JOB_CONFIGS, type JobType, type TraitType, type EmployeeCandidate, type Specialty } from '../types/game'
 
 const store = useGameStore()
 
 const stageConfig = computed(() => store.currentStageConfig)
+const showHireDialog = ref(false)
+const selectedJobType = ref<JobType | null>(null)
+const candidates = ref<EmployeeCandidate[]>([])
+const selectedCandidate = ref<EmployeeCandidate | null>(null)
 
 const availableJobs = computed(() => {
   return stageConfig.value.unlockedJobs
@@ -108,8 +170,36 @@ function getTraitName(trait: TraitType): string {
   return TRAITS[trait].name
 }
 
-function hireEmployee(job: JobType) {
-  store.hireEmployee(job)
+function getSpecialtyName(spec: Specialty): string {
+  const names: Record<Specialty, string> = {
+    web_frontend: 'Web前端',
+    mobile: '移动开发',
+    backend: '后端',
+    ai_bigdata: 'AI/大数据',
+    game: '游戏开发'
+  }
+  return names[spec]
+}
+
+function openHireDialog(job: JobType) {
+  selectedJobType.value = job
+  candidates.value = store.generateEmployeeCandidates(job)
+  selectedCandidate.value = null
+  showHireDialog.value = true
+}
+
+function confirmHire() {
+  if (selectedCandidate.value) {
+    store.hireEmployee(selectedCandidate.value)
+    closeHireDialog()
+  }
+}
+
+function closeHireDialog() {
+  showHireDialog.value = false
+  candidates.value = []
+  selectedCandidate.value = null
+  selectedJobType.value = null
 }
 
 function fireEmployee(id: string) {
@@ -328,5 +418,168 @@ function fireEmployee(id: string) {
   border-color: #95a5a6;
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+/* 模态框样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: #2c3e50;
+  padding: 25px;
+  border: 3px solid #34495e;
+  max-width: 650px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-content h3 {
+  color: #ecf0f1;
+  margin: 0 0 20px 0;
+  font-size: 18px;
+}
+
+.candidates-list h4 {
+  color: #3498db;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+.candidate-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.candidate-card {
+  background: #34495e;
+  border: 2px solid #7f8c8d;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.candidate-card:hover {
+  border-color: #3498db;
+  transform: translateX(5px);
+}
+
+.candidate-card.selected {
+  border-color: #2ecc71;
+  background: #2c5f3f;
+}
+
+.candidate-name {
+  color: #ecf0f1;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.candidate-stats {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 10px;
+}
+
+.stat-item {
+  display: flex;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.stat-label {
+  color: #95a5a6;
+}
+
+.stat-value {
+  color: #ecf0f1;
+  font-weight: bold;
+}
+
+.stat-item.salary .stat-value {
+  color: #f39c12;
+}
+
+.candidate-specialties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.specialty-tag {
+  background: #3498db;
+  color: #ecf0f1;
+  padding: 2px 8px;
+  font-size: 11px;
+  border: 1px solid #2980b9;
+}
+
+.candidate-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.trait-tag {
+  background: #9b59b6;
+  color: #ecf0f1;
+  padding: 2px 8px;
+  font-size: 11px;
+  border: 1px solid #8e44ad;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn-primary {
+  padding: 10px 20px;
+  background: #2ecc71;
+  border: 2px solid #27ae60;
+  color: #ecf0f1;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #27ae60;
+}
+
+.btn-primary:disabled {
+  background: #7f8c8d;
+  border-color: #95a5a6;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn-secondary {
+  padding: 10px 20px;
+  background: #7f8c8d;
+  border: 2px solid #95a5a6;
+  color: #ecf0f1;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #95a5a6;
 }
 </style>

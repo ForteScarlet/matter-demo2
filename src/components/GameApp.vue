@@ -22,6 +22,7 @@ I see the issue - the component imports don't exist yet. Let me create a simplif
         
         <div class="main-panel">
           <ProjectPanel />
+          <EventLog />
         </div>
       </div>
     </div>
@@ -41,6 +42,7 @@ import MainMenu from './MainMenu.vue'
 import GameHeader from './GameHeader.vue'
 import EmployeePanel from './EmployeePanel.vue'
 import ProjectPanel from './ProjectPanel.vue'
+import EventLog from './EventLog.vue'
 
 const store = useGameStore()
 
@@ -129,12 +131,19 @@ function showLoadGame() {
   showToast('载入功能开发中...', 'info')
 }
 
+function handleDailyAutoSave() {
+  saveManager.autoSave(store.$state)
+  showToast('💾 每日自动保存', 'info')
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown)
+  window.addEventListener('daily-autosave', handleDailyAutoSave)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
+  window.removeEventListener('daily-autosave', handleDailyAutoSave)
   stopGameLoop()
   stopAutoSave()
 })
@@ -180,10 +189,10 @@ function stopGameLoop() {
 
 function startAutoSave() {
   const settings = saveManager.getSettings()
-  if (settings.autoSave.enabled) {
+  if (settings.autoSave.enabled && settings.autoSave.interval > 0) {
     autoSaveInterval = window.setInterval(() => {
       saveManager.autoSave(store.$state)
-      showToast('自动保存', 'info')
+      showToast('⏰ 定时自动保存', 'info')
     }, settings.autoSave.interval * 60 * 1000)
   }
 }

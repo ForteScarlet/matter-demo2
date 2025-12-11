@@ -9,7 +9,10 @@ import type {
   ProjectType,
   ProjectStage,
   WorkSchedule,
-  CompanyStage
+  CompanyStage,
+  LogEntry,
+  LogCategory,
+  EmployeeCandidate
 } from '../types/game'
 import {
   COMPANY_STAGES,
@@ -45,7 +48,11 @@ export const useGameStore = defineStore('game', {
     consecutiveOnTimeDeliveries: 0,
     
     tutorialStep: 0,
-    tutorialCompleted: false
+    tutorialCompleted: false,
+    
+    eventLog: [],
+    projectGenerationProgress: 0,
+    lastAutoSaveDay: 0
   }),
 
   getters: {
@@ -138,6 +145,42 @@ export const useGameStore = defineStore('game', {
   },
 
   actions: {
+    // 添加日志
+    addLog(category: LogCategory, message: string, details?: string, moneyChange?: number, reputationChange?: number) {
+      const log: LogEntry = {
+        id: `log_${Date.now()}_${Math.random()}`,
+        timestamp: this.currentDay + this.currentTime / 24,
+        category,
+        message,
+        details,
+        moneyChange,
+        reputationChange
+      }
+      this.eventLog.push(log)
+      
+      // 限制日志数量，保留最近1000条
+      if (this.eventLog.length > 1000) {
+        this.eventLog.shift()
+      }
+    },
+
+    // 修改金钱（带日志）
+    changeMoney(amount: number, reason: string) {
+      this.money += amount
+      if (amount > 0) {
+        this.totalRevenue += amount
+      } else {
+        this.totalExpense += Math.abs(amount)
+      }
+      this.addLog('money', reason, `${amount > 0 ? '+' : ''}${Math.round(amount)}`, amount)
+    },
+
+    // 修改声望（带日志）
+    changeReputation(amount: number, reason: string) {
+      this.reputation += amount
+      this.addLog('reputation', reason, `${amount > 0 ? '+' : ''}${amount}`, undefined, amount)
+    },
+
     // 初始化游戏
     initGame() {
       this.currentDay = 1
@@ -153,9 +196,16 @@ export const useGameStore = defineStore('game', {
       this.completedProjects = 0
       this.failedProjects = 0
       this.consecutiveOnTimeDeliveries = 0
+      this.eventLog = []
+      this.projectGenerationProgress = 0
+      this.lastAutoSaveDay = 0
       
-      // 创建初始员工
-      this.hireEmployee('developer', '张三')
+      // 生成3个初始项目（无初始员工）
+      for (let i = 0; i < 3; i++) {
+        this.generateProject()
+      }
+      
+      this.addLog('system', '游戏开始', '欢迎来到Coder\'s Paradise！')
     },
     
     // 游戏主循环 (每秒调用)
@@ -189,8 +239,9 @@ export const useGameStore = defineStore('game', {
     onNewDay() {
       // 结算工资
       const wages = this.dailyWageCost
-      this.money -= wages
-      this.totalExpense += wages
+      if (wages > 0) {
+        this.changeMoney(-wages, `工资结算（${this.employees.length}名员工）`)
+      }
       
       // 更新满意度
       this.updateEmployeeSatisfaction()
@@ -201,22 +252,55 @@ export const useGameStore = defineStore('game', {
       // 月度租金 (每30天)
       if (this.currentDay % 30 === 0) {
         const rent = this.monthlyRent
-        this.money -= rent
-        this.totalExpense += rent
+        this.changeMoney(-rent, `月度租金（${COMPANY_STAGES[this.companyStage].name}）`)
       }
       
       // 声望衰减
       if (this.consecutiveOnTimeDeliveries > 0 && this.currentDay % 30 === 0) {
         this.consecutiveOnTimeDeliveries = 0
       }
+      
+      // 每日自动保存
+      if (this.currentDay > this.lastAutoSaveDay) {
+        this.lastAutoSaveDay = this.currentDay
+        // 触发自动保存事件（在GameApp.vue中监听）
+        window.dispatchEvent(new CustomEvent('daily-autosave'))
+      }
     },
     
-    // 雇佣员工
-    hireEmployee(jobType: JobType, name?: string) {
+    // 生成候选员工（每个职位3个候选人）
+    generateEmployeeCandidates(jobType: JobType): EmployeeCandidate[] {
       const config = JOB_CONFIGS[jobType]
+      const candidates: EmployeeCandidate[] = []
+      
+      const firstNames = ['张', '李', '王', '刘', '陈', '杨', '赵', '黄', '周', '吴', '徐', '孙', '马', '朱', '胡', '郭', '何', '高', '林', '罗']
+      const secondNames = ['伟', '芳', '娜', '秀英', '敏', '静', '丽', '强', '磊', '军', '洋', '勇', '艳', '杰', '涛', '明', '超', '鹏', '华', '燕']
+      
+      for (let i = 0; i < 3; i++) {
+        const firstName = firstNames[Math.floor(Math.random() * firstNames.length)]
+        const secondName = secondNames[Math.floor(Math.random() * secondNames.length)]
+        
+        candidates.push({
+          id: `candidate_${Date.now()}_${Math.random()}`,
+          name: `${firstName}${secondName}`,
+          jobType,
+          level: 1,
+          specialties: this.randomSpecialties(),
+          baseEfficiency: 0.8 + Math.random() * 0.7,
+          qualityFactor: 0.7 + Math.random() * 0.6,
+          salary: config.baseSalary * (0.9 + Math.random() * 0.4), // 90%-130%
+          traits: this.randomTraits()
+        })
+      }
+      
+      return candidates
+    },
+
+    // 雇佣员工（从候选人中选择）
+    hireEmployee(candidate: EmployeeCandidate) {
       const stageConfig = this.currentStageConfig
       
-      if (!stageConfig.unlockedJobs.includes(jobType)) {
+      if (!stageConfig.unlockedJobs.includes(candidate.jobType)) {
         console.error('该职业尚未解锁')
         return null
       }
@@ -228,21 +312,23 @@ export const useGameStore = defineStore('game', {
       
       const employee: Employee = {
         id: `emp_${Date.now()}_${Math.random()}`,
-        name: name || `员工${this.employees.length + 1}`,
-        jobType,
-        level: 1,
+        name: candidate.name,
+        jobType: candidate.jobType,
+        level: candidate.level,
         experience: 0,
-        specialties: this.randomSpecialties(),
-        baseEfficiency: 0.8 + Math.random() * 0.7,
-        qualityFactor: 0.7 + Math.random() * 0.6,
+        specialties: candidate.specialties,
+        baseEfficiency: candidate.baseEfficiency,
+        qualityFactor: candidate.qualityFactor,
         satisfaction: 70,
         fatigue: 0,
-        salary: config.baseSalary,
-        traits: this.randomTraits(),
+        salary: candidate.salary,
+        traits: candidate.traits,
         hireDate: this.currentDay
       }
       
       this.employees.push(employee)
+      this.addLog('employee', `雇佣了${JOB_CONFIGS[candidate.jobType].name}：${candidate.name}`, 
+        `工资：${Math.round(candidate.salary)}/天`)
       return employee
     },
     
@@ -250,12 +336,15 @@ export const useGameStore = defineStore('game', {
     fireEmployee(employeeId: string) {
       const index = this.employees.findIndex(e => e.id === employeeId)
       if (index !== -1) {
+        const employee = this.employees[index]
+        
         // 从项目中移除
         this.projects.forEach(p => {
           p.assignedEmployees = p.assignedEmployees.filter(id => id !== employeeId)
         })
         
         this.employees.splice(index, 1)
+        this.addLog('employee', `解雇了${employee.name}`, `职位：${JOB_CONFIGS[employee.jobType].name}`)
       }
     },
     
@@ -296,9 +385,12 @@ export const useGameStore = defineStore('game', {
     // 尝试生成项目
     tryGenerateProjects(deltaTime: number) {
       const rate = this.projectGenerationRate
-      const probability = (rate / 86400) * deltaTime * this.gameSpeed // 每秒生成概率
+      const progressPerSecond = (rate / 86400) * this.gameSpeed
       
-      if (Math.random() < probability) {
+      this.projectGenerationProgress += progressPerSecond * deltaTime
+      
+      if (this.projectGenerationProgress >= 1) {
+        this.projectGenerationProgress = 0
         this.generateProject()
       }
     },
@@ -309,7 +401,7 @@ export const useGameStore = defineStore('game', {
       
       if (this.projectPool.length >= stageConfig.projectPoolCapacity) {
         // 项目池满，扣除声望
-        this.reputation = Math.max(0, this.reputation - 2)
+        this.changeReputation(-2, '项目池已满，客户流失')
         return
       }
       
@@ -328,11 +420,14 @@ export const useGameStore = defineStore('game', {
       
       const typeConfig = PROJECT_TYPE_CONFIGS[selectedType]
       
+      const budget = Math.round(typeConfig.budgetBase * (0.5 + Math.random()))
+      const deadline = Math.round(typeConfig.deadlineBase * (0.7 + Math.random() * 0.6))
+      
       const project: Project = {
         id: `proj_${Date.now()}_${Math.random()}`,
         type: selectedType,
-        budget: typeConfig.budgetBase * (0.5 + Math.random()),
-        deadline: Math.round(typeConfig.deadlineBase * (0.7 + Math.random() * 0.6)),
+        budget,
+        deadline,
         complexity: 3 + Math.floor(Math.random() * 7),
         clarityLevel: 5 + Math.floor(Math.random() * 5),
         stage: 'design',
@@ -346,6 +441,8 @@ export const useGameStore = defineStore('game', {
       
       this.projectPool.push(project)
       this.projects.push(project)
+      this.addLog('project', `新项目：${typeConfig.name}`, 
+        `预算：${budget}，期限：${deadline}天`)
     },
     
     // 处理项目进度
@@ -476,24 +573,33 @@ export const useGameStore = defineStore('game', {
       const finalIncome = project.budget * qualityScore * (1 - delayPenalty)
       project.finalIncome = Math.max(project.budget * 0.3, finalIncome)
       
-      this.money += project.finalIncome
-      this.totalRevenue += project.finalIncome
+      const projectType = PROJECT_TYPE_CONFIGS[project.type].name
+      this.changeMoney(project.finalIncome, `项目交付：${projectType}`)
       
       // 更新声望
+      let reputationChange = 0
       if (qualityScore >= 1.2) {
-        this.reputation += 3 + Math.floor(Math.random() * 3)
+        reputationChange += 3 + Math.floor(Math.random() * 3)
       }
       
       if (delayDays === 0) {
         this.consecutiveOnTimeDeliveries++
         if (this.consecutiveOnTimeDeliveries <= 30) {
-          this.reputation += 1
+          reputationChange += 1
         }
+        this.addLog('project', `按时交付项目：${projectType}`, 
+          `质量分：${qualityScore.toFixed(2)}，收入：${Math.round(project.finalIncome)}`)
       } else {
         this.consecutiveOnTimeDeliveries = 0
         if (delayDays > project.deadline * 0.5) {
-          this.reputation -= 5 + Math.floor(Math.random() * 10)
+          reputationChange -= 5 + Math.floor(Math.random() * 10)
         }
+        this.addLog('project', `延期交付项目：${projectType}`, 
+          `延期${delayDays}天，质量分：${qualityScore.toFixed(2)}，收入：${Math.round(project.finalIncome)}`)
+      }
+      
+      if (reputationChange !== 0) {
+        this.changeReputation(reputationChange, `项目交付质量${qualityScore >= 1.2 ? '优秀' : ''}${delayDays > 0 ? '（延期）' : ''}`)
       }
       
       // 全局技术债
