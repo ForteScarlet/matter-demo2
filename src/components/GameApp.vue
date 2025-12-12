@@ -1,5 +1,3 @@
-I see the issue - the component imports don't exist yet. Let me create a simplified version without the missing components first.
-
 <template>
   <div class="game-app">
     <!-- 主菜单 -->
@@ -8,20 +6,56 @@ I see the issue - the component imports don't exist yet. Let me create a simplif
       @continue="continueGame"
       @new-game="startNewGame"
       @load-game="showLoadGame"
+      @load-save="handleLoadSave"
+      @save-game="handleSaveGame"
       @settings="showSettings = true"
     />
 
     <!-- 游戏界面 -->
     <div v-if="gameState === 'playing'" class="game-view">
+      <!-- 游戏头部信息栏 -->
       <GameHeader />
       
+      <!-- 主游戏区域 -->
       <div class="game-content">
+        <!-- 左侧：项目面板 -->
         <div class="left-panel">
-          <EmployeePanel />
+          <ProjectPanel />
         </div>
         
-        <div class="main-panel">
-          <ProjectPanel />
+        <!-- 右侧面板：员工和日志 -->
+        <div class="side-panel">
+          <div class="panel-tabs">
+            <button 
+              @click="activePanel = 'employees'" 
+              :class="{ active: activePanel === 'employees' }"
+              class="tab-btn"
+            >
+              👥 团队
+            </button>
+            <button 
+              @click="activePanel = 'log'" 
+              :class="{ active: activePanel === 'log' }"
+              class="tab-btn"
+            >
+              📋 日志
+            </button>
+          </div>
+          
+          <div class="panel-content">
+            <EmployeePanel v-if="activePanel === 'employees'" />
+            <EventLog v-if="activePanel === 'log'" />
+          </div>
+        </div>
+        
+        <!-- 游戏菜单按钮 -->
+        <div class="game-menu-buttons">
+          <button @click="showManual = true" class="menu-button" title="游戏说明手册">
+            📖
+          </button>
+          <button @click="showGameMenu = true" class="menu-button" title="游戏菜单">
+            ☰
+          </button>
         </div>
       </div>
     </div>
@@ -29,6 +63,30 @@ I see the issue - the component imports don't exist yet. Let me create a simplif
     <!-- Toast 通知 -->
     <div v-if="toast.show" class="toast-notification" :class="toast.type">
       {{ toast.message }}
+    </div>
+    
+    <!-- 游戏手册 -->
+    <GameManual v-model:isOpen="showManual" />
+    
+    <!-- 游戏菜单 -->
+    <div v-if="showGameMenu" class="modal-overlay" @click="showGameMenu = false">
+      <div class="game-menu-modal" @click.stop>
+        <h3>游戏菜单</h3>
+        <div class="menu-options">
+          <button @click="handleManualSave" class="menu-option-btn save">
+            💾 手动保存
+          </button>
+          <button @click="showManual = true; showGameMenu = false" class="menu-option-btn">
+            📖 游戏手册
+          </button>
+          <button @click="handleReturnToMenu" class="menu-option-btn danger">
+            🏠 返回主菜单
+          </button>
+          <button @click="showGameMenu = false" class="menu-option-btn">
+            ✕ 取消
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -40,12 +98,17 @@ import { saveManager } from '../services/saveManager'
 import MainMenu from './MainMenu.vue'
 import GameHeader from './GameHeader.vue'
 import EmployeePanel from './EmployeePanel.vue'
+import EventLog from './EventLog.vue'
+import GameManual from './GameManual.vue'
 import ProjectPanel from './ProjectPanel.vue'
 
 const store = useGameStore()
 
 const gameState = ref<'menu' | 'playing'>('menu')
 const showSettings = ref(false)
+const showManual = ref(false)
+const showGameMenu = ref(false)
+const activePanel = ref<'employees' | 'log'>('employees')
 
 const toast = ref({
   show: false,
@@ -81,30 +144,46 @@ function handleKeyDown(e: KeyboardEvent) {
   
   if (key === 'F5') {
     e.preventDefault()
-    saveGame()
+    handleManualSave()
   }
-}
-
-function continueGame() {
-  const saves = saveManager.getAllSaves()
-  if (saves.length > 0) {
-    loadGame('1')
-  } else {
-    const autoSave = saveManager.getAutoSave()
-    if (autoSave) {
-      const gameData = saveManager.load('autosave')
-      if (gameData) {
-        Object.assign(store.$state, gameData)
-        gameState.value = 'playing'
-        startGameLoop()
-        startAutoSave()
-        showToast('游戏已载入', 'success')
-      }
+  
+  if (key === 'Escape') {
+    if (showGameMenu.value) {
+      showGameMenu.value = false
+    } else {
+      showGameMenu.value = true
     }
   }
 }
 
-function startNewGame() {
+async function continueGame() {
+  const autoSave = await saveManager.getAutoSave()
+  if (autoSave) {
+    const gameData = await saveManager.load('autosave')
+    if (gameData) {
+      Object.assign(store.$state, gameData)
+      gameState.value = 'playing'
+      startGameLoop()
+      startAutoSave()
+      showToast('游戏已载入', 'success')
+      return
+    }
+  }
+  
+  const saves = await saveManager.getAllSaves()
+  if (saves.length > 0) {
+    const gameData = await saveManager.load('1')
+    if (gameData) {
+      Object.assign(store.$state, gameData)
+      gameState.value = 'playing'
+      startGameLoop()
+      startAutoSave()
+      showToast('游戏已载入', 'success')
+    }
+  }
+}
+
+async function startNewGame() {
   store.initGame()
   gameState.value = 'playing'
   startGameLoop()
@@ -112,39 +191,77 @@ function startNewGame() {
   showToast('游戏开始！', 'success')
 }
 
-function loadGame(slotId: string) {
-  const gameData = saveManager.load(slotId)
-  if (gameData) {
-    Object.assign(store.$state, gameData)
-    gameState.value = 'playing'
-    startGameLoop()
-    startAutoSave()
-    showToast('游戏已载入', 'success')
-  } else {
+async function handleLoadSave(saveId: string) {
+  try {
+    const slotId = saveId === 'autosave' ? 'autosave' : saveId.replace('save_', '')
+    const gameData = await saveManager.load(slotId)
+    if (gameData) {
+      Object.assign(store.$state, gameData)
+      gameState.value = 'playing'
+      startGameLoop()
+      startAutoSave()
+      showToast('游戏已载入', 'success')
+    } else {
+      showToast('载入失败', 'error')
+    }
+  } catch (e) {
+    console.error('Load error:', e)
     showToast('载入失败', 'error')
   }
 }
 
-function showLoadGame() {
-  showToast('载入功能开发中...', 'info')
+async function handleSaveGame(saveName: string) {
+  try {
+    const saveData = await saveManager.save(store.$state, saveName)
+    showToast(`游戏已保存: ${saveData.name}`, 'success')
+  } catch (e) {
+    console.error('Save error:', e)
+    showToast('保存失败', 'error')
+  }
+}
+
+async function showLoadGame() {
+  const saves = await saveManager.getAllSaves()
+  if (saves.length > 0) {
+    await continueGame()
+  } else {
+    showToast('暂无存档', 'info')
+  }
+}
+
+async function handleDailyAutoSave() {
+  await saveManager.autoSave(store.$state)
+  showToast('💾 每日自动保存', 'info')
 }
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown)
+  window.addEventListener('daily-autosave', handleDailyAutoSave)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
+  window.removeEventListener('daily-autosave', handleDailyAutoSave)
   stopGameLoop()
   stopAutoSave()
 })
 
-function saveGame() {
+async function handleManualSave() {
   try {
-    const saveData = saveManager.save(store.$state)
+    const saveData = await saveManager.save(store.$state)
     showToast(`游戏已保存: ${saveData.name}`, 'success')
+    showGameMenu.value = false
   } catch (e) {
     showToast('保存失败', 'error')
+  }
+}
+
+function handleReturnToMenu() {
+  if (confirm('确定要返回主菜单吗？未保存的进度将会丢失。')) {
+    stopGameLoop()
+    stopAutoSave()
+    gameState.value = 'menu'
+    showGameMenu.value = false
   }
 }
 
@@ -154,16 +271,13 @@ function startGameLoop() {
   let lastTime = Date.now()
   
   const tick = () => {
-    if (gameState.value !== 'playing') {
-      gameLoop = requestAnimationFrame(tick)
-      return
-    }
-    
     const now = Date.now()
     const deltaTime = (now - lastTime) / 1000
     lastTime = now
     
-    store.gameTick(deltaTime)
+    if (gameState.value === 'playing') {
+      store.gameTick(deltaTime)
+    }
     
     gameLoop = requestAnimationFrame(tick)
   }
@@ -180,10 +294,10 @@ function stopGameLoop() {
 
 function startAutoSave() {
   const settings = saveManager.getSettings()
-  if (settings.autoSave.enabled) {
-    autoSaveInterval = window.setInterval(() => {
-      saveManager.autoSave(store.$state)
-      showToast('自动保存', 'info')
+  if (settings.autoSave.enabled && settings.autoSave.interval > 0) {
+    autoSaveInterval = window.setInterval(async () => {
+      await saveManager.autoSave(store.$state)
+      showToast('⏰ 定时自动保存', 'info')
     }, settings.autoSave.interval * 60 * 1000)
   }
 }
@@ -219,6 +333,8 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
 .game-view {
   width: 100%;
   height: 100%;
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -226,17 +342,64 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
 .game-content {
   flex: 1;
   display: flex;
+  gap: 10px;
+  padding: 10px;
   overflow: hidden;
 }
 
 .left-panel {
-  width: 350px;
-  overflow-y: auto;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.main-panel {
+.side-panel {
+  width: 350px;
+  background: #2c3e50;
+  border: 2px solid #7f8c8d;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-tabs {
+  display: flex;
+  background: #34495e;
+  border-bottom: 2px solid #7f8c8d;
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #95a5a6;
+  padding: 10px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  transition: all 0.2s;
+  border-right: 1px solid #7f8c8d;
+}
+
+.tab-btn:last-child {
+  border-right: none;
+}
+
+.tab-btn:hover {
+  background: #415a77;
+  color: #ecf0f1;
+}
+
+.tab-btn.active {
+  background: #2c3e50;
+  color: #3498db;
+  border-bottom: 2px solid #3498db;
+}
+
+.panel-content {
   flex: 1;
   overflow-y: auto;
+  max-height: calc(100vh - 150px);
 }
 
 .toast-notification {
@@ -273,5 +436,106 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
     transform: translateX(0);
     opacity: 1;
   }
+}
+
+.game-menu-buttons {
+  position: fixed;
+  top: 70px;
+  right: 370px;
+  display: flex;
+  gap: 5px;
+  z-index: 1000;
+}
+
+.menu-button {
+  background: rgba(52, 152, 219, 0.9);
+  color: #ecf0f1;
+  border: 2px solid #2980b9;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  transition: all 0.2s;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-button:hover {
+  background: rgba(41, 128, 185, 0.95);
+  transform: scale(1.1);
+}
+
+.game-menu-modal {
+  background: #2c3e50;
+  border: 3px solid #34495e;
+  padding: 30px;
+  min-width: 350px;
+}
+
+.game-menu-modal h3 {
+  margin: 0 0 25px 0;
+  color: #ecf0f1;
+  font-size: 20px;
+  text-align: center;
+  border-bottom: 2px solid #34495e;
+  padding-bottom: 15px;
+}
+
+.menu-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.menu-option-btn {
+  background: #34495e;
+  color: #ecf0f1;
+  border: 2px solid #7f8c8d;
+  padding: 15px 20px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.menu-option-btn:hover {
+  background: #415a77;
+  border-color: #95a5a6;
+  transform: translateX(5px);
+}
+
+.menu-option-btn.save {
+  background: #27ae60;
+  border-color: #229954;
+}
+
+.menu-option-btn.save:hover {
+  background: #2ecc71;
+}
+
+.menu-option-btn.danger {
+  background: #e74c3c;
+  border-color: #c0392b;
+}
+
+.menu-option-btn.danger:hover {
+  background: #c0392b;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
 }
 </style>

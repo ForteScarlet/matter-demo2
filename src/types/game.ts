@@ -1,5 +1,19 @@
 // 游戏核心类型定义
 
+// 事件日志类别
+export type LogCategory = 'money' | 'reputation' | 'employee' | 'project' | 'system' | 'other'
+
+// 事件日志条目
+export interface LogEntry {
+  id: string
+  timestamp: number // 游戏内时间（天数）
+  category: LogCategory
+  message: string
+  details?: string
+  moneyChange?: number
+  reputationChange?: number
+}
+
 // 职业类型
 export type JobType = 'developer' | 'product_manager' | 'tester' | 'sales'
 
@@ -36,6 +50,7 @@ export interface Employee {
   traits: TraitType[]
   currentProjectId?: string
   hireDate: number
+  isWorking: boolean // 是否投入工作（仅对产品经理和测试工程师有效）
 }
 
 // 项目类型
@@ -131,6 +146,20 @@ export interface GameEvent {
   triggerCondition?: string
 }
 
+// 候选员工
+export interface EmployeeCandidate {
+  id: string
+  name: string
+  jobType: JobType
+  level: number
+  specialties: Specialty[]
+  baseEfficiency: number
+  qualityFactor: number
+  salary: number
+  traits: TraitType[]
+  isWorking?: boolean // 是否投入工作（默认true）
+}
+
 // 游戏状态
 export interface GameState {
   // 基础信息
@@ -167,6 +196,15 @@ export interface GameState {
   // 新手引导
   tutorialStep: number
   tutorialCompleted: boolean
+  
+  // 事件日志
+  eventLog: LogEntry[]
+  
+  // 项目生成进度 (0-1)
+  projectGenerationProgress: number
+  
+  // 最后自动保存天数
+  lastAutoSaveDay: number
 }
 
 // 常量配置

@@ -8,3 +8,8 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.mount('#app')
+
+// 注册全局错误处理
+app.config.errorHandler = (err, instance, info) => {
+  console.error('Vue Error:', err, info)
+}
